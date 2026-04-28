@@ -1,5 +1,5 @@
 <Solution>
   <Project Path="DemoTot3D/DemoTot3D.csproj" />
-  <Project Path="Tot3D/Tot3D.csproj" />
+  <Project Path="SDL3Demo/SDL3Demo.csproj" />
   <Project Path="VeldridDemos/VeldridDemos.csproj" />
 </Solution>
