@@ -1,8 +1,8 @@
 using static SDL.SDL3;
 using SDL;
-using Tot3D.Primitives;
+using Lu3DX.Primitives;
 
-namespace Tot3D;
+namespace Lu3DX;
 
 
 

@@ -1,4 +1,4 @@
-namespace Tot3D.Primitives;
+namespace Lu3DX.Primitives;
 
 /// <summary>
 ///   Represents a keyboard code.
