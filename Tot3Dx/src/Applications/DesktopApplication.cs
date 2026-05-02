@@ -2,30 +2,30 @@ using static SDL.SDL3;
 using SDL;
 using Tot3Dx.Primitives;
 
-namespace Tot3Dx
+namespace Tot3Dx.Applications
 {
     /// <summary>
     ///   Options to initialize an application window.
     /// </summary>
 
-    public struct ApplicationWindowOptions
+    public struct DesktopApplicationOptions
     {
         public required string Title;
         public required int Width;
         public required int Height;
 
-        public ApplicationWindowOptions() { }
+        public DesktopApplicationOptions() { }
     }
 
     /// <summary>
     ///   An application window for rendering graphics and event handling.
     /// </summary>
 
-    public unsafe sealed class ApplicationWindow
+    public unsafe sealed class DesktopApplication : IApplication
     {
         private readonly SDL_Window* _window = null;
 
-        public ApplicationWindowOptions Options { get; private set; }
+        public DesktopApplicationOptions Options { get; private set; }
         public bool Running { get; private set; }
 
         public Action? OnStart { private get; set; }
@@ -37,7 +37,7 @@ namespace Tot3Dx
         ///   Initializes SDL and creates the window.
         /// </summary>
 
-        public ApplicationWindow(ApplicationWindowOptions options)
+        public DesktopApplication(DesktopApplicationOptions options)
         {
             Options = options;
             Running = true;

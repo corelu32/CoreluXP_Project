@@ -1,16 +1,16 @@
-﻿using Tot3Dx;
+﻿using Tot3Dx.Applications;
 using Tot3Dx.Primitives;
 
-var options = new ApplicationWindowOptions
+var options = new DesktopApplicationOptions
 {
     Title = "Tot3Dx Demo",
     Width = 800,
     Height = 600
 };
 
-var window = new ApplicationWindow(options);
+var window = new DesktopApplication(options);
 
-window.OnKeyDown = (key) =>
+window.OnKeyDown = key =>
 {
     switch (key)
     {
