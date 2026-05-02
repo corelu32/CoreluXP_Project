@@ -1,6 +1,6 @@
 <Solution>
-  <Project Path="DemoLu3DX/DemoLu3DX.csproj" />
-  <Project Path="Lu3DX/Lu3DX.csproj" />
+  <Project Path="DemoTot3Dx/DemoTot3Dx.csproj" />
   <Project Path="SDL3Demo/SDL3Demo.csproj" />
+  <Project Path="Tot3Dx/Tot3Dx.csproj" />
   <Project Path="VeldridDemos/VeldridDemos.csproj" />
 </Solution>

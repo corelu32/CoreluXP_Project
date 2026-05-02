@@ -1,10 +1,10 @@
-﻿using Lu3DX;
-using Lu3DX.Primitives;
+﻿using Tot3Dx;
+using Tot3Dx.Primitives;
 
 var options = new ApplicationWindowOptions
 {
-    Title  = "Lu3DX Demo",
-    Width  = 800,
+    Title = "Tot3Dx Demo",
+    Width = 800,
     Height = 600
 };
 

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Lu3DX\Lu3DX.csproj" />
+    <ProjectReference Include="..\Tot3Dx\Tot3Dx.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

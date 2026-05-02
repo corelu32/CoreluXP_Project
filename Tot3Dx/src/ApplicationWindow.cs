@@ -1,8 +1,8 @@
 using static SDL.SDL3;
 using SDL;
-using Lu3DX.Primitives;
+using Tot3Dx.Primitives;
 
-namespace Lu3DX
+namespace Tot3Dx
 {
     /// <summary>
     ///   Options to initialize an application window.
