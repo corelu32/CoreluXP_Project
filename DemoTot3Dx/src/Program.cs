@@ -8,16 +8,16 @@ var options = new DesktopApplicationOptions
     Height = 600
 };
 
-var window = new DesktopApplication(options);
+var app = new DesktopApplication(options);
 
-window.OnKeyDown = key =>
+app.OnKeyDown = key =>
 {
     switch (key)
     {
         case KeyCode.Escape:
-            window.Stop();
+            app.Stop();
             break;
     }
 };
 
-window.Run();
+app.Run();
