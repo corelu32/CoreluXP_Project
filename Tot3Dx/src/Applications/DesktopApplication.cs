@@ -11,8 +11,8 @@ namespace Tot3Dx.Applications
     public struct DesktopApplicationOptions
     {
         public required string Title;
-        public required int Width;
-        public required int Height;
+        public required int    Width;
+        public required int    Height;
 
         public DesktopApplicationOptions() { }
     }
@@ -28,10 +28,10 @@ namespace Tot3Dx.Applications
         public DesktopApplicationOptions Options { get; private set; }
         public bool Running { get; private set; }
 
-        public Action? OnStart { private get; set; }
-        public Action? OnQuit { private get; set; }
+        public Action?          OnStart   { private get; set; }
+        public Action?          OnQuit    { private get; set; }
         public Action<KeyCode>? OnKeyDown { private get; set; }
-        public Action<float>? OnUpdate { private get; set; }
+        public Action<float>?   OnUpdate  { private get; set; }
 
         /// <summary>
         ///   Initializes SDL and creates the window.
@@ -60,7 +60,7 @@ namespace Tot3Dx.Applications
         }
 
         /// <summary>
-        ///   Run the update loop.
+        ///   Run the update loop and process events.
         /// </summary>
 
         public void Run()
@@ -89,20 +89,17 @@ namespace Tot3Dx.Applications
         }
 
         /// <summary>
-        ///   Poll queued window events.
+        ///   Poll each pending event from the queue and execute the appropriate delegate.
         /// </summary>
 
         private void PollEvents()
         {
             SDL_Event e;
 
-            // `SDL_Event` objects are queued during runtime.
-            // `SDL_PollEvent(e)` will dequeue each event into `e` until none are left.
-
-            // Each `SDL_EventType` is responsible for executing the relevant
-            // user-defined delegate.
-
+            // Poll each pending event from the queue.
             while (SDL_PollEvent(&e))
+
+                // Figure out which delegate to execute based on the event type.
                 switch ((SDL_EventType)e.type)
                 {
                     case SDL_EventType.SDL_EVENT_QUIT:
