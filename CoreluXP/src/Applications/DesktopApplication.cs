@@ -1,8 +1,8 @@
 using static SDL.SDL3;
 using SDL;
-using Tot3Dx.Primitives;
+using CoreluXP.Primitives;
 
-namespace Tot3Dx.Applications
+namespace CoreluXP.Applications
 {
     /// <summary>
     ///   Options to initialize an application window.

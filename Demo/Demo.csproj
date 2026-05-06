@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Tot3Dx\Tot3Dx.csproj" />
+    <ProjectReference Include="..\CoreluXP\CoreluXP.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

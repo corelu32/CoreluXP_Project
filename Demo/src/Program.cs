@@ -1,9 +1,9 @@
-﻿using Tot3Dx.Applications;
-using Tot3Dx.Primitives;
+﻿using CoreluXP.Applications;
+using CoreluXP.Primitives;
 
 var options = new DesktopApplicationOptions
 {
-    Title = "Tot3Dx Demo",
+    Title = "CoreluXP Demo",
     Width = 800,
     Height = 600
 };

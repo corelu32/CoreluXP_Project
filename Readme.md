@@ -1,4 +1,3 @@
-# Tot3Dx Overview
+# CoreluXP Overview
 -------------------------------------------------------------------------------
-Tot3Dx is a simple framework notably used for 3D rendering, along with
-additional audio support.
+The CoreluXP project provides 3D graphics, windowing, and audio features.

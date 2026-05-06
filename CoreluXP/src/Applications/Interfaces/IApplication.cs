@@ -1,4 +1,4 @@
-namespace Tot3Dx.Applications;
+namespace CoreluXP.Applications;
 
 public interface IApplication
 {
