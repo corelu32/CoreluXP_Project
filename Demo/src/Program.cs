@@ -3,7 +3,7 @@ using CoreluXP.Primitives;
 
 var options = new DesktopApplicationOptions
 {
-    Title = "CoreluXP Demo",
+    Title = "Corelu XP Demo",
     Width = 800,
     Height = 600
 };
