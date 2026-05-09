@@ -1,14 +1,8 @@
-﻿using CoreluXP.Applications;
+﻿using CoreluXP.Core;
 using CoreluXP.Primitives;
 
-var options = new DesktopApplicationOptions
-{
-    Title = "Corelu XP Demo",
-    Width = 800,
-    Height = 600
-};
-
-var app = new DesktopApplication(options);
+var app = new Application("Corelu XP Demo", 800, 600, new(Subsystem.Video));
+app.SetDefaultFramerate(60);
 
 app.OnKeyDown = key =>
 {
@@ -18,6 +12,11 @@ app.OnKeyDown = key =>
             app.Stop();
             break;
     }
+};
+
+app.OnUpdate = delta =>
+{
+    app.WriteDebug($"Framerate {1 / delta}");
 };
 
 app.Run();
