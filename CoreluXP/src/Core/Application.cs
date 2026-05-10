@@ -2,14 +2,8 @@ using static SDL.SDL3;
 using SDL;
 using CoreluXP.Primitives;
 using CoreluXP.Mathematics;
-using System.Reflection;
 
 namespace CoreluXP.Core;
-
-[AttributeUsage(AttributeTargets.Method)] public class OnStartAttribute   : Attribute { }
-[AttributeUsage(AttributeTargets.Method)] public class OnQuitAttribute    : Attribute { }
-[AttributeUsage(AttributeTargets.Method)] public class OnKeyDownAttribute : Attribute { }
-[AttributeUsage(AttributeTargets.Method)] public class OnUpdateAttribute  : Attribute { }
 
 /// <summary>
 ///   Application window and renderer. 
@@ -21,10 +15,10 @@ public unsafe sealed class Application : IDisposable
     private SDL_Renderer*  _renderer;
     private readonly Clock _clock;
 
-    private Action?          _onStart;
-    private Action?          _onQuit;
-    private Action<KeyCode>? _onKeyDown;
-    private Action<float>?   _onUpdate;
+    public event Action?          OnStart;
+    public event Action?          OnQuit;
+    public event Action<KeyCode>? OnKeyDown;
+    public event Action<float>?   OnUpdate;
     
     public string Title           { get; private set; }
     public int    DefaultWidth    { get; private set; }
@@ -37,9 +31,9 @@ public unsafe sealed class Application : IDisposable
     
     public Application(
         string title,
-        int    width  = 800,
-        int    height = 600,
-        SubsystemProfile profile = default)
+        int width,
+        int height,
+        SubsystemProfile profile)
     {
         Title            = title;
         DefaultWidth     = width;
@@ -49,31 +43,11 @@ public unsafe sealed class Application : IDisposable
 
         _clock = new Clock();
     }
-
-    public void Bird(object instance)
-    {
-        var methods = instance.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-
-        foreach (var method in methods)
-        {
-            if (method.GetCustomAttribute<OnStartAttribute>() is not null)
-                _onStart = (Action)Delegate.CreateDelegate(typeof(Action), instance, method);
-
-            if (method.GetCustomAttribute<OnUpdateAttribute>() is not null)
-                _onUpdate = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), instance, method);
-
-            if (method.GetCustomAttribute<OnQuitAttribute>() is not null)
-                _onKeyDown = (Action<KeyCode>)Delegate.CreateDelegate(typeof(Action), instance, method);
-                
-            if (method.GetCustomAttribute<OnQuitAttribute>() is not null)
-                _onQuit = (Action)Delegate.CreateDelegate(typeof(Action), instance, method);
-        }
-    }
     
     public void Run()
     {
         Initialize();
-        _onStart?.Invoke();
+        OnStart?.Invoke();
         IsRunning = true;
         
         while (IsRunning)
@@ -85,14 +59,14 @@ public unsafe sealed class Application : IDisposable
             SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
             SDL_RenderClear(_renderer);
             
-            _onUpdate?.Invoke(_clock.ComputeDelta());
+            OnUpdate?.Invoke(_clock.ComputeDelta());
             SDL_RenderPresent(_renderer);
 
             if (!VSyncEnabled && TargetFramerate is not null)
                 _clock.RegulateFramerate(TargetFramerate.Value);
         }
 
-        _onQuit?.Invoke();
+        OnQuit?.Invoke();
         Destroy();
     }
 
@@ -130,12 +104,12 @@ public unsafe sealed class Application : IDisposable
             switch ((SDL_EventType)e.type)
             {
                 case SDL_EventType.SDL_EVENT_QUIT:
-                    _onQuit?.Invoke();
+                    OnQuit?.Invoke();
                     Stop();
                     break;
 
                 case SDL_EventType.SDL_EVENT_KEY_DOWN:
-                    _onKeyDown?.Invoke((KeyCode)e.key.key);
+                    OnKeyDown?.Invoke((KeyCode)e.key.key);
                     break;
             }
         }
