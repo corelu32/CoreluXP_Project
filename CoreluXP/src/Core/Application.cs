@@ -97,16 +97,8 @@ public unsafe sealed class Application : IDisposable
             throw new ApplicationException($"Failed to {(enabled ? "enable" : "disable")} vsync. {SDL_GetError()}");
     }
 
-    public void Draw(IDrawable drawable) => drawable.Draw(this);
-    
-    public void WriteDebug(string text, float left = 10, float top = 10)
-    {
-        byte r, g, b, a;
-        SDL_GetRenderDrawColor(_renderer, &r, &g, &b, &a);
-        SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
-        SDL_RenderDebugText(_renderer, left, top, text);
-        SDL_SetRenderDrawColor(_renderer, r, g, b, a);
-    }
+    public void Draw(IDrawable drawable)
+        => drawable.Draw(this);
 
     private void PollEvents()
     {
