@@ -1,26 +1,25 @@
-﻿using CoreluXP.Core;
-using CoreluXP.Graphics;
-using CoreluXP.Primitives;
+﻿namespace Demo;
 
-Application app = new("Corelu XP DEMO", 800, 600, new SubsystemProfile(Subsystem.Video));
-DebugText text = new();
-
-app.OnStart += () =>
+public class Program
 {
-    app.SetTargetFramerate(60);
-    app.EnableVSync(false);
-};
+    public static void Main(string[] args)
+    {
+        var demos = new Dictionary<string, Action>
+        {
+            ["HelloWorld"] = HelloWorldDemo.Run
+        };
+        
+        // Validation handling.
+        if (args.Length != 1 || !demos.ContainsKey(args[0]))
+        {
+            Console.WriteLine("Please provide one argument to run one of these valid demos:");
 
-app.OnKeyDown += (key) =>
-{
-    if (key is KeyCode.Escape)
-        app.Stop();
-};
+            foreach (var key in demos.Keys)
+                Console.WriteLine($"|__ {key}");
 
-app.OnUpdate += (delta) =>
-{
-    text.Text = $"Framerate {1 / delta}";
-    app.Draw(text);
-};
+            return;
+        }
 
-app.Run();
+        demos[args[0]].Invoke();
+    }
+}
