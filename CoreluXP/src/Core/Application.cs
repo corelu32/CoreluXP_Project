@@ -2,7 +2,6 @@ using static SDL.SDL3;
 using SDL;
 using CoreluXP.Primitives;
 using CoreluXP.Mathematics;
-using System.Numerics;
 
 namespace CoreluXP.Core;
 
@@ -79,14 +78,21 @@ public unsafe sealed class Application : IDisposable
 
     public void EnableVSync(bool enabled)
     {
-        if (!SDL_SetRenderVSync(_renderer, enabled ? 1 : 0))
+        var state = enabled
+                        ? SDL_RENDERER_VSYNC_ADAPTIVE
+                        : SDL_RENDERER_VSYNC_DISABLED;
+        
+        if (!SDL_SetRenderVSync(_renderer, state))
             throw new ApplicationException($"Failed to {(enabled ? "enable" : "disable")} vsync. {SDL_GetError()}");
     }
 
     public void WriteDebug(string text, float left = 10, float top = 10)
     {
+        byte r, g, b, a;
+        SDL_GetRenderDrawColor(_renderer, &r, &g, &b, &a);
         SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
         SDL_RenderDebugText(_renderer, left, top, text);
+        SDL_SetRenderDrawColor(_renderer, r, g, b, a);
     }
 
     private void PollEvents()
