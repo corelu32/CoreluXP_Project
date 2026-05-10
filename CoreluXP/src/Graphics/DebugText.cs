@@ -1,5 +1,4 @@
 using static SDL.SDL3;
-using SDL;
 using CoreluXP.Core;
 
 namespace CoreluXP.Graphics;

@@ -1,5 +1,6 @@
 using static SDL.SDL3;
 using SDL;
+
 using CoreluXP.Primitives;
 using CoreluXP.Mathematics;
 using CoreluXP.Graphics;
