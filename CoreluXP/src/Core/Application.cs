@@ -2,8 +2,14 @@ using static SDL.SDL3;
 using SDL;
 using CoreluXP.Primitives;
 using CoreluXP.Mathematics;
+using System.Reflection;
 
 namespace CoreluXP.Core;
+
+[AttributeUsage(AttributeTargets.Method)] public class OnStartAttribute   : Attribute { }
+[AttributeUsage(AttributeTargets.Method)] public class OnQuitAttribute    : Attribute { }
+[AttributeUsage(AttributeTargets.Method)] public class OnKeyDownAttribute : Attribute { }
+[AttributeUsage(AttributeTargets.Method)] public class OnUpdateAttribute  : Attribute { }
 
 /// <summary>
 ///   Application window and renderer. 
@@ -14,6 +20,11 @@ public unsafe sealed class Application : IDisposable
     private SDL_Window*    _window;
     private SDL_Renderer*  _renderer;
     private readonly Clock _clock;
+
+    private Action?          _onStart;
+    private Action?          _onQuit;
+    private Action<KeyCode>? _onKeyDown;
+    private Action<float>?   _onUpdate;
     
     public string Title           { get; private set; }
     public int    DefaultWidth    { get; private set; }
@@ -23,11 +34,6 @@ public unsafe sealed class Application : IDisposable
     public bool   VSyncEnabled    { get; private set; } = false;
     
     public SubsystemProfile SubsystemProfile { get; set; }
-
-    public Action?          OnStart   { private get; set; }
-    public Action?          OnQuit    { private get; set; }
-    public Action<KeyCode>? OnKeyDown { private get; set; }
-    public Action<float>?   OnUpdate  { private get; set; }
     
     public Application(
         string title,
@@ -44,10 +50,30 @@ public unsafe sealed class Application : IDisposable
         _clock = new Clock();
     }
 
+    public void Bird(object instance)
+    {
+        var methods = instance.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+        foreach (var method in methods)
+        {
+            if (method.GetCustomAttribute<OnStartAttribute>() is not null)
+                _onStart = (Action)Delegate.CreateDelegate(typeof(Action), instance, method);
+
+            if (method.GetCustomAttribute<OnUpdateAttribute>() is not null)
+                _onUpdate = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), instance, method);
+
+            if (method.GetCustomAttribute<OnQuitAttribute>() is not null)
+                _onKeyDown = (Action<KeyCode>)Delegate.CreateDelegate(typeof(Action), instance, method);
+                
+            if (method.GetCustomAttribute<OnQuitAttribute>() is not null)
+                _onQuit = (Action)Delegate.CreateDelegate(typeof(Action), instance, method);
+        }
+    }
+    
     public void Run()
     {
         Initialize();
-        OnStart?.Invoke();
+        _onStart?.Invoke();
         IsRunning = true;
         
         while (IsRunning)
@@ -59,14 +85,14 @@ public unsafe sealed class Application : IDisposable
             SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
             SDL_RenderClear(_renderer);
             
-            OnUpdate?.Invoke(_clock.ComputeDelta());
+            _onUpdate?.Invoke(_clock.ComputeDelta());
             SDL_RenderPresent(_renderer);
 
             if (!VSyncEnabled && TargetFramerate is not null)
                 _clock.RegulateFramerate(TargetFramerate.Value);
         }
 
-        OnQuit?.Invoke();
+        _onQuit?.Invoke();
         Destroy();
     }
 
@@ -85,7 +111,7 @@ public unsafe sealed class Application : IDisposable
         if (!SDL_SetRenderVSync(_renderer, state))
             throw new ApplicationException($"Failed to {(enabled ? "enable" : "disable")} vsync. {SDL_GetError()}");
     }
-
+    
     public void WriteDebug(string text, float left = 10, float top = 10)
     {
         byte r, g, b, a;
@@ -104,12 +130,12 @@ public unsafe sealed class Application : IDisposable
             switch ((SDL_EventType)e.type)
             {
                 case SDL_EventType.SDL_EVENT_QUIT:
-                    OnQuit?.Invoke();
+                    _onQuit?.Invoke();
                     Stop();
                     break;
 
                 case SDL_EventType.SDL_EVENT_KEY_DOWN:
-                    OnKeyDown?.Invoke((KeyCode)e.key.key);
+                    _onKeyDown?.Invoke((KeyCode)e.key.key);
                     break;
             }
         }
@@ -151,7 +177,7 @@ public unsafe sealed class Application : IDisposable
         _renderer = null;
         _window = null;
     }
-
+    
     public void Dispose() => Destroy();
 }
 

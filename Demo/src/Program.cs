@@ -1,27 +1,30 @@
 ﻿using CoreluXP.Core;
 using CoreluXP.Primitives;
 
-var app = new Application("Corelu XP Demo", 800, 600, new(Subsystem.Video));
+namespace Demo;
 
-app.OnStart = () =>
+public static class Demo
 {
-    app.SetTargetFramerate(60);
-    app.EnableVSync(false);
-};
-
-app.OnKeyDown = key =>
-{
-    switch (key)
+    private readonly static Application App = new("Corelu XP DEMO", 800, 600, new SubsystemProfile(Subsystem.Video));
+    public static void Main() => App.Run();
+    
+    [OnStart]
+    public static void OnStart()
     {
-        case KeyCode.Escape:
-            app.Stop();
-            break;
+        App.SetTargetFramerate(60);
+        App.EnableVSync(false);
     }
-};
 
-app.OnUpdate = delta =>
-{
-    app.WriteDebug($"Framerate {1 / delta}");
-};
+    [OnKeyDown]
+    public static void OnKeyDown(KeyCode key)
+    {
+        if (key is KeyCode.Escape)
+            App.Stop();
+    }
 
-app.Run();
+    [OnUpdate]
+    public static void OnUpdate(float delta)
+    {
+        App.WriteDebug($"Framerate {1/delta}");
+    }
+}
