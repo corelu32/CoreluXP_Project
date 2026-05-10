@@ -2,6 +2,7 @@ using static SDL.SDL3;
 using SDL;
 using CoreluXP.Primitives;
 using CoreluXP.Mathematics;
+using CoreluXP.Graphics;
 
 namespace CoreluXP.Core;
 
@@ -11,6 +12,13 @@ namespace CoreluXP.Core;
 
 public unsafe sealed class Application : IDisposable
 {
+    public readonly struct ApplicationSdlContext(Application app)
+    {
+        private readonly Application _app = app;
+        public SDL_Window*   GetWindow()   => _app._window;
+        public SDL_Renderer* GetRenderer() => _app._renderer;
+    }
+    
     private SDL_Window*    _window;
     private SDL_Renderer*  _renderer;
     private readonly Clock _clock;
@@ -28,6 +36,7 @@ public unsafe sealed class Application : IDisposable
     public bool   VSyncEnabled    { get; private set; } = false;
     
     public SubsystemProfile SubsystemProfile { get; set; }
+    public ApplicationSdlContext SdlContext { get; private set; }
     
     public Application(
         string title,
@@ -41,6 +50,7 @@ public unsafe sealed class Application : IDisposable
         SubsystemProfile = profile;
         IsRunning        = false;
 
+        SdlContext = new(this);
         _clock = new Clock();
     }
     
@@ -85,6 +95,8 @@ public unsafe sealed class Application : IDisposable
         if (!SDL_SetRenderVSync(_renderer, state))
             throw new ApplicationException($"Failed to {(enabled ? "enable" : "disable")} vsync. {SDL_GetError()}");
     }
+
+    public void Draw(IDrawable drawable) => drawable.Draw(this);
     
     public void WriteDebug(string text, float left = 10, float top = 10)
     {
