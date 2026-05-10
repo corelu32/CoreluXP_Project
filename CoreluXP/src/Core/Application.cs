@@ -16,12 +16,12 @@ public unsafe sealed class Application : IDisposable
     private SDL_Renderer*  _renderer;
     private readonly Clock _clock;
     
-    public string Title            { get; private set; }
-    public int    DefaultWidth     { get; private set; }
-    public int    DefaultHeight    { get; private set; }
-    public bool   IsRunning        { get; private set; }
-    public float? DefaultFramerate { get; private set; } = 60.0f;
-    public bool   VSyncEnabled     { get; private set; } = false;
+    public string Title           { get; private set; }
+    public int    DefaultWidth    { get; private set; }
+    public int    DefaultHeight   { get; private set; }
+    public bool   IsRunning       { get; private set; }
+    public float? TargetFramerate { get; private set; } = 60.0f;
+    public bool   VSyncEnabled    { get; private set; } = false;
     
     public SubsystemProfile SubsystemProfile { get; set; }
 
@@ -63,8 +63,8 @@ public unsafe sealed class Application : IDisposable
             OnUpdate?.Invoke(_clock.ComputeDelta());
             SDL_RenderPresent(_renderer);
 
-            if (!VSyncEnabled && DefaultFramerate is not null)
-                _clock.RegulateFramerate(DefaultFramerate.Value);
+            if (!VSyncEnabled && TargetFramerate is not null)
+                _clock.RegulateFramerate(TargetFramerate.Value);
         }
 
         OnQuit?.Invoke();
@@ -74,8 +74,8 @@ public unsafe sealed class Application : IDisposable
     public void Stop()
         => IsRunning = false;
 
-    public void SetDefaultFramerate(float framerate)
-        => DefaultFramerate = framerate;
+    public void SetTargetFramerate(float? framerate)
+        => TargetFramerate = framerate;
 
     public void EnableVSync(bool enabled)
     {
