@@ -5,11 +5,19 @@ namespace CoreluXP.Applications;
 
 public sealed class DesktopApplication : IApplication
 {
+    public readonly struct InnerSilkContext(IWindow window)
+    {
+        private readonly IWindow _window = window;
+        public IWindow Window => _window;
+    }
+    
     private readonly IWindow _window = null!;
 
     public event Action?         OnLoad;
     public event Action<double>? OnUpdate;
     public event Action?         OnClose;
+
+    public InnerSilkContext SilkContext; 
     
     public DesktopApplication(string title, int width, int height)
     {
@@ -26,6 +34,8 @@ public sealed class DesktopApplication : IApplication
         _window.Load    += OnLoadHandler;
         _window.Render  += OnUpdateHandler;
         _window.Closing += OnCloseHandler;
+
+        SilkContext = new(_window);
     }
 
     public void Run() => _window.Run();
