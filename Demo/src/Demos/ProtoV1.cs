@@ -1,6 +1,13 @@
+
+using System;
+
+#if ENABLE_PROTOTYPE_DEMOS
+
 using Prototype.V1.Core;
 using Prototype.V1.Graphics;
 using Prototype.V1.Primitives;
+
+#endif
 
 namespace Demo;
 
@@ -8,6 +15,8 @@ public static class ProtoV1
 {
     public static void Run()
     {
+
+#if ENABLE_PROTOTYPE_DEMOS
         Application app = new("Corelu XP | Hello World Demo", 800, 600, new SubsystemProfile(Subsystem.Video));
         DebugText text = new("Hello, world!", 350, 290);
         
@@ -29,5 +38,9 @@ public static class ProtoV1
         };
         
         app.Run();
+#else
+        Console.WriteLine("Prototypes are disabled.");
+#endif
+
     }
 }

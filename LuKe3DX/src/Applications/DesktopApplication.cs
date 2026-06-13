@@ -46,7 +46,7 @@ public sealed class DesktopApplication
 
     public int Height
     {
-        get => _width;
+        get => _height;
         set
         {
             _height = value;
@@ -219,7 +219,8 @@ internal sealed class Clock
         ulong deltaNs = _frameStartNs - _frameLastNs;
         _frameLastNs  = _frameStartNs;
         
-        return deltaNs / UnitConversions.NsPerSecond;
+        // Cast to float first to preserve the precise sub-second delta fraction
+        return (float)deltaNs / UnitConversions.NsPerSecond;
     }
 
     /// <summary>

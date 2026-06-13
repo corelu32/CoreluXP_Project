@@ -1,7 +1,14 @@
+
+using System;
+
+#if ENABLE_PROTOTYPE_DEMOS
+
 using Prototype.V2.Applications;
 using Prototype.V2.Graphics;
 using Prototype.V2.Renderers;
 using Silk.NET.Maths;
+
+#endif
 
 namespace Demo;
 
@@ -9,6 +16,7 @@ public static class ProtoV2
 {
     public static void Run()
     {
+#if ENABLE_PROTOTYPE_DEMOS
         DesktopApplication app = new("Corelu XP | Legacy Shape Demo", 800, 600);
         LegacyRenderer renderer = new(app.SilkContext.Window);
 
@@ -59,5 +67,9 @@ public static class ProtoV2
         };
     
         app.Run();
+#else
+        Console.WriteLine("Prototype demos are disabled.");
+#endif
+
     }
 }
