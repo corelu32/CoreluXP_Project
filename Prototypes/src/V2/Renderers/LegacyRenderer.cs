@@ -1,10 +1,10 @@
 using System.Runtime.InteropServices;
-using CoreluXP.Deprecated.V2.Graphics;
+using Prototype.V2.Graphics;
 using Silk.NET.Maths;
 using Silk.NET.WebGPU;
 using Silk.NET.Windowing;
 
-namespace CoreluXP.Deprecated.V2.Renderers;
+namespace Prototype.V2.Renderers;
 
 /// <summary>
 /// Renders a collection of <see cref="LegacyShape"/> instances using WebGPU.

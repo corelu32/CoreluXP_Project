@@ -1,6 +1,6 @@
 using Silk.NET.Maths;
 
-namespace CoreluXP.Deprecated.V2.Graphics;
+namespace Prototype.V2.Graphics;
 
 /// <summary>
 /// Defines a procedurally generated mesh as a swept, segmented cylinder.

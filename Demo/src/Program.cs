@@ -6,8 +6,8 @@ public class Program
     {
         var demos = new Dictionary<string, Action>
         {
-            ["HelloWorldDepV1"] = HelloWorldDepV1Demo.Run,
-            ["HelloWorldDepV2"] = HelloWorldDepV2Demo.Run
+            ["ProtoV1"] = ProtoV1.Run,
+            ["ProtoV2"] = ProtoV2.Run
         };
         
         // Validation handling.

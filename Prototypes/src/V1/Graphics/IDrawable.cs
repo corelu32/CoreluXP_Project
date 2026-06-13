@@ -1,6 +1,6 @@
-using CoreluXP.Core;
+using Prototype.V1.Core;
 
-namespace CoreluXP.Deprecated.V1.Graphics;
+namespace Prototype.V1.Graphics;
 
 public interface IDrawable
 {

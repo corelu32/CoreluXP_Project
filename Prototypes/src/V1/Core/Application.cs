@@ -1,11 +1,11 @@
 using static SDL.SDL3;
 using SDL;
 
-using CoreluXP.Deprecated.V1.Primitives;
-using CoreluXP.Deprecated.V1.Mathematics;
-using CoreluXP.Deprecated.V1.Graphics;
+using Prototype.V1.Primitives;
+using Prototype.V1.Mathematics;
+using Prototype.V1.Graphics;
 
-namespace CoreluXP.Core;
+namespace Prototype.V1.Core;
 
 /// <summary>
 ///   Application window and renderer. 

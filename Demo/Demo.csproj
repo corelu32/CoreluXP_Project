@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CoreluXP\CoreluXP.csproj" />
+    <ProjectReference Include="..\Prototypes\Prototypes.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
