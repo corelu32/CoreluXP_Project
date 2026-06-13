@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\CoreluXP\CoreluXP.csproj" />
+    <ProjectReference Include="..\LuKe3DX\LuKe3DX.csproj" />
     <ProjectReference Include="..\Prototypes\Prototypes.csproj" />
   </ItemGroup>
 
