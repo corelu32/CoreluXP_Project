@@ -1,4 +1,4 @@
-namespace CoreluXP.Deprecated.Primitives;
+namespace CoreluXP.Deprecated.V1.Primitives;
 
 /// <summary>
 ///   Represents a keyboard code.

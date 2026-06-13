@@ -1,6 +1,6 @@
 using CoreluXP.Core;
 
-namespace CoreluXP.Deprecated.Graphics;
+namespace CoreluXP.Deprecated.V1.Graphics;
 
 public interface IDrawable
 {

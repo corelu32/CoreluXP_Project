@@ -1,7 +1,7 @@
 using static SDL.SDL3;
 using CoreluXP.Core;
 
-namespace CoreluXP.Deprecated.Graphics;
+namespace CoreluXP.Deprecated.V1.Graphics;
 
 public sealed class DebugText : IDrawable
 {

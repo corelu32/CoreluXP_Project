@@ -1,9 +1,9 @@
 using static SDL.SDL3;
 using SDL;
 
-using CoreluXP.Deprecated.Primitives;
-using CoreluXP.Deprecated.Mathematics;
-using CoreluXP.Deprecated.Graphics;
+using CoreluXP.Deprecated.V1.Primitives;
+using CoreluXP.Deprecated.V1.Mathematics;
+using CoreluXP.Deprecated.V1.Graphics;
 
 namespace CoreluXP.Core;
 

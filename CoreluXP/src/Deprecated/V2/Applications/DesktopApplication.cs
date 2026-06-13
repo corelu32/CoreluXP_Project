@@ -1,7 +1,7 @@
 using Silk.NET.Windowing;
 using Silk.NET.Maths;
 
-namespace CoreluXP.Applications;
+namespace CoreluXP.Deprecated.V2.Applications;
 
 public sealed class DesktopApplication : IApplication
 {

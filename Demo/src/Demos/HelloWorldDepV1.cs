@@ -1,10 +1,10 @@
 using CoreluXP.Core;
-using CoreluXP.Deprecated.Graphics;
-using CoreluXP.Deprecated.Primitives;
+using CoreluXP.Deprecated.V1.Graphics;
+using CoreluXP.Deprecated.V1.Primitives;
 
 namespace Demo;
 
-public static class HelloWorldDepDemo
+public static class HelloWorldDepV1Demo
 {
     public static void Run()
     {

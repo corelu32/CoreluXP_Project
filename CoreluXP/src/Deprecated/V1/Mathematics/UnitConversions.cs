@@ -1,4 +1,4 @@
-namespace CoreluXP.Deprecated.Mathematics;
+namespace CoreluXP.Deprecated.V1.Mathematics;
 
 public static class UnitConversions
 {

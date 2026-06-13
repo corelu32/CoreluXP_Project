@@ -1,11 +1,11 @@
-using CoreluXP.Applications;
-using CoreluXP.Graphics;
-using CoreluXP.Renderers;
+using CoreluXP.Deprecated.V2.Applications;
+using CoreluXP.Deprecated.V2.Graphics;
+using CoreluXP.Deprecated.V2.Renderers;
 using Silk.NET.Maths;
 
 namespace Demo;
 
-public static class HelloWorldDemo
+public static class HelloWorldDepV2Demo
 {
     public static void Run()
     {
