@@ -1,6 +1,6 @@
 <Solution>
-  <Project Path="CoreluXP/CoreluXP.csproj" />
   <Project Path="Demo/Demo.csproj" />
+  <Project Path="LuKe3DX/LuKe3DX.csproj" />
   <Project Path="Prototypes/Prototypes.csproj" />
   <Project Path="SDL3Demo/SDL3Demo.csproj" />
   <Project Path="VeldridDemos/VeldridDemos.csproj" />
