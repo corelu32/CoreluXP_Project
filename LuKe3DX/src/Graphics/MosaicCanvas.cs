@@ -1,4 +1,5 @@
 using LuKe3DX.Applications;
+using SDL3;
 
 namespace LuKe3DX.Graphics;
 

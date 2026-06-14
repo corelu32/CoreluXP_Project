@@ -1,4 +1,7 @@
-﻿namespace Demo;
+﻿using System;
+using System.Collections.Generic;
+
+namespace Demo;
 
 public class Program
 {

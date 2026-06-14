@@ -1,3 +1,4 @@
+using LuKe3DX.Graphics;
 using LuKe3DX.Mathematics;
 using LuKe3DX.Primitives;
 using SDL3;
@@ -6,8 +7,17 @@ namespace LuKe3DX.Applications;
 
 public sealed class DesktopApplication
 {
-    private nint _window = 0;
-    private nint _renderer = 0;
+    public class ApplicationSdlContext(DesktopApplication app)
+    {
+        private readonly DesktopApplication _app = app;
+        public IntPtr GetWindow()    => _app._window;
+        public IntPtr GetGpuDevice() => _app._gpuDevice;
+    }
+    
+    public ApplicationSdlContext SdlContext { get; private set; }
+    
+    private IntPtr _window    = IntPtr.Zero;
+    private IntPtr _gpuDevice = IntPtr.Zero;
     
     private readonly Clock _clock = new();
     
@@ -18,8 +28,19 @@ public sealed class DesktopApplication
     private int    _width = 800;
     private int    _height = 600;
     private float? _targetFramerate = 60;
-    private bool   _vsyncEnabled = false;
+    private bool   _vsyncEnabled = true; // The GPU device enabled vsync by default.
 
+    public event Action?          OnStart;
+    public event Action?          OnQuit;
+    public event Action<Keycode>? OnKeyDown;
+    public event Action<float>?   OnUpdate;
+    public event Action<float>?   OnRender;
+    
+    public DesktopApplication()
+    {
+        SdlContext = new(this);
+    }
+    
     public string Title
     {
         get => _title;
@@ -75,14 +96,42 @@ public sealed class DesktopApplication
         {
             if (_vsyncEnabled == value)
                 return;
-            
-            if (!_isInitialized)
-                throw new Exception("Please initialize the application before configuring the VSync state.");
 
             _vsyncEnabled = value;
             
-            if (!SDL.SetRenderVSync(_renderer, value ? -1 : 0))
-                throw new ApplicationException($"Failed to {(value ? "enable" : "disable")} vsync. {SDL.GetError()}");
+            // Define target swapchain canvas properties
+            var composition = SDL.GPUSwapchainComposition.SDR;
+            SDL.GPUPresentMode targetMode;
+        
+            if (_vsyncEnabled)
+            {
+                // Opt for Mailbox if available (lowest latency VSync), fallback to basic VSync
+                if (SDL.WindowSupportsGPUPresentMode(_gpuDevice, _window, SDL.GPUPresentMode.Mailbox))
+                {
+                    targetMode = SDL.GPUPresentMode.Mailbox;
+                }
+                else
+                {
+                    targetMode = SDL.GPUPresentMode.VSync;
+                }
+            }
+            else
+            {
+                // Turn VSync Off (Check if Immediate mode is supported by hardware driver)
+                if (SDL.WindowSupportsGPUPresentMode(_gpuDevice, _window, SDL.GPUPresentMode.Immediate))
+                {
+                    targetMode = SDL.GPUPresentMode.Immediate;
+                }
+                else
+                {
+                    // If completely unsupported, default back to VSYNC safe baseline
+                    targetMode = SDL.GPUPresentMode.VSync;
+                }
+            }
+        
+            // Apply the chosen present mode parameters to the swapchain context
+            if (!SDL.SetGPUSwapchainParameters(_gpuDevice, _window, composition, targetMode))
+                throw new Exception($"Failed to toggle vsync: ${SDL.GetError()}");
         }
     }
 
@@ -94,11 +143,6 @@ public sealed class DesktopApplication
         if (_isInitialized)
             SDL.SetWindowSize(_window, width, height);
     }
-
-    public event Action?          OnStart;
-    public event Action?          OnQuit;
-    public event Action<Keycode>? OnKeyDown;
-    public event Action<float>?   OnUpdate;
     
     public void Run()
     {
@@ -109,13 +153,50 @@ public sealed class DesktopApplication
         while (_isRunning)
         {
             _clock.Restart();
+            float delta = _clock.ComputeDelta();
+            
             PollEvents();
+            OnUpdate?.Invoke(delta);
+            
+            // Acquire a command buffer.
+            IntPtr commandBuffer = SDL.AcquireGPUCommandBuffer(_gpuDevice);
+            if (commandBuffer == IntPtr.Zero)
+                continue;
 
-            SDL.SetRenderDrawColor(_renderer, 0, 0, 0, 255);
-            SDL.RenderClear(_renderer);
+            // Acquire the swapchain texture for the current frame.
+            if (SDL.AcquireGPUSwapchainTexture(
+                commandBuffer,
+                _window,
+                out IntPtr swapchainTexture,
+                out uint width,
+                out uint height))
+            {
+                if (swapchainTexture != IntPtr.Zero)
+                {
+                    var colorTargetInfo = new SDL.GPUColorTargetInfo
+                    {
+                        ClearColor = new SDL.FColor { R = 0.0f, G = 0.0f, B = 0.0f, A = 1.0f },
+                        LoadOp     = SDL.GPULoadOp.Clear,
+                        StoreOp    = SDL.GPUStoreOp.Store,
+                        Texture    = swapchainTexture
+                    };
 
-            OnUpdate?.Invoke(_clock.ComputeDelta());
-            SDL.RenderPresent(_renderer);
+                    IntPtr renderPass;
+                    
+                    unsafe
+                    {
+                        renderPass = SDL.BeginGPURenderPass(commandBuffer, (IntPtr)(&colorTargetInfo), 1, IntPtr.Zero);
+                    }
+
+                    
+
+                    OnRender?.Invoke(delta);
+                    
+                    SDL.EndGPURenderPass(renderPass);
+                }
+            }
+
+            SDL.SubmitGPUCommandBuffer(commandBuffer);
 
             if (!_vsyncEnabled && _targetFramerate is not null)
                 _clock.RegulateFramerate(_targetFramerate.Value);
@@ -125,6 +206,9 @@ public sealed class DesktopApplication
         Destroy();
     }
 
+    public void Draw(IDrawable drawable)
+        => drawable.Draw(this);
+
     public void Stop()
         => _isRunning = false;
 
@@ -132,40 +216,56 @@ public sealed class DesktopApplication
     {
         if (!_isInitialized)
             return;
-        
-        if (_renderer != 0)
-            SDL.DestroyRenderer(_renderer);
 
-        if (_window != 0)
+        SDL.ReleaseWindowFromGPUDevice(_gpuDevice, _window);
+            
+        if (_gpuDevice != IntPtr.Zero)
+            SDL.DestroyGPUDevice(_gpuDevice);
+
+        if (_window != IntPtr.Zero)
             SDL.DestroyWindow(_window);
 
         SDL.Quit();
-
-        _renderer = 0;
-        _window = 0;
+        _gpuDevice     = IntPtr.Zero;
+        _window        = IntPtr.Zero;
         _isInitialized = false;
     }
         
     private void Initialize()
     {
-        // Initialize SDL
+        // Initialize SDL.
         if (!SDL.Init(SDL.InitFlags.Video | SDL.InitFlags.Audio))
             throw new Exception($"Failed to initialize SDL: {SDL.GetError()}");
 
-        if (!SDL.CreateWindowAndRenderer(
+        // Create the window.
+        _window = SDL.CreateWindow(
             _title,
             _width,
             _height,
-            SDL.WindowFlags.Hidden,
-            out var window,
-            out var renderer))
-                throw new Exception($"Failed to initialize the window and renderer: {SDL.GetError()}");
+            SDL.WindowFlags.Hidden);
 
-        SDL.RenderClear(renderer);
-        SDL.ShowWindow(window);
+        if (_window == IntPtr.Zero)
+            throw new Exception($"Failed to initialize the window and renderer: {SDL.GetError()}");
 
-        _renderer = renderer;
-        _window = window;
+        // Create the GPU device.
+        _gpuDevice = SDL.CreateGPUDevice(
+            SDL.GPUShaderFormat.SPIRV | SDL.GPUShaderFormat.MSL | SDL.GPUShaderFormat.DXIL,
+            debugMode: false,
+            name: null);
+        
+        if (_gpuDevice == IntPtr.Zero)
+            throw new Exception($"Failed to create the GPU device: {SDL.GetError()}");
+
+        // Bind the GPU device to the window.
+        if (!SDL.ClaimWindowForGPUDevice(_gpuDevice, _window))
+            throw new Exception($"Failed to bind GPU device to window: {SDL.GetError()}");
+
+        // Disable VSync
+        VSyncEnabled = false;
+            
+        // Prepare and show the window.
+        SDL.ShowWindow(_window);
+        
         _isInitialized = true;
     }
 
