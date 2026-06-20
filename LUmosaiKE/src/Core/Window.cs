@@ -8,7 +8,6 @@ namespace LUmosaiKE.Core;
 ///   Represents a window or viewport accompanied with powerful event handling.
 ///   Can be configured to regulate a target framerate.
 /// </summary>
-
 public sealed class Window
 {
     private readonly Clock _clock = new();
@@ -23,7 +22,6 @@ public sealed class Window
     /// <summary>
     ///   The window title.
     /// </summary>
-    
     public string Title
     {
         get => _title;
@@ -37,7 +35,6 @@ public sealed class Window
     /// <summary>
     ///   The window position.
     /// </summary>
-    
     public Vector2<int> Position
     {
         get => _position;
@@ -51,7 +48,6 @@ public sealed class Window
     /// <summary>
     ///   The window size.
     /// </summary>
-    
     public Vector2<int> Size
     {
         get => _size;
@@ -71,7 +67,6 @@ public sealed class Window
     /// <summary>
     ///   The target framerate. 
     /// </summary>
-    
     public double? TargetFramerate
     {
         get => _targetFramerate;
@@ -85,6 +80,9 @@ public sealed class Window
         }
     }
 
+    /// <summary>
+    ///   Enable/disable V-Sync.
+    /// </summary>
     public bool VSyncEnabled
     {
         get => _vsyncEnabled;
@@ -94,15 +92,25 @@ public sealed class Window
             OnVSyncChange?.Invoke(value);
         }
     }
-
-    public void SendKeyDown(Keycode keycode)
+    
+    public void SignalKeyDown(Keycode keycode)
         => OnKeyDown?.Invoke(keycode);
+
+    public void SignalUpdate(double delta)
+        => OnUpdate?.Invoke(delta);
+
+    public void SignalRender(double delta)
+        => OnRender?.Invoke(delta);
+
+    public void SignalClose()
+        => OnClose?.Invoke();
     
     public event Action?           OnOpen;
     public event Action?           OnClose;
     public event Action<int, int>? OnMove;
     public event Action<int, int>? OnResize;
     public event Action<Keycode>?  OnKeyDown;
+    public event Action<double>?   OnPlatformUpdate;
     public event Action<double>?   OnUpdate;
     public event Action<double>?   OnRender;
     public event Action<string>?   OnTitleChange;
@@ -115,7 +123,10 @@ public sealed class Window
         Size  = new(width, height);
         TargetFramerate = 60.0;
     }
-
+    
+    /// <summary>
+    ///   Run the window loop.
+    /// </summary>
     public void Run()
     {
         OnOpen?.Invoke();
@@ -124,9 +135,16 @@ public sealed class Window
         while (_running)
         {
             double delta = _clock.ComputeDelta();
-            
-            OnUpdate?.Invoke(delta);
-            OnRender?.Invoke(delta);
+
+            if (OnPlatformUpdate is not null)
+                // If the platform update has subscribers, prioritize this call.
+                OnPlatformUpdate.Invoke(delta);
+            else
+            {
+                // If the platform update is unused, manually invoke OnUpdate and OnRender.
+                OnUpdate?.Invoke(delta);
+                OnRender?.Invoke(delta);
+            }
 
             if (!_vsyncEnabled && _targetFramerate is not null)
                 _clock.RegulateFramerate(_targetFramerate.Value);
@@ -141,7 +159,6 @@ public sealed class Window
 /// <summary>
 ///   Regulates framerate and computes the delta time between frames.
 /// </summary>
-
 internal class Clock
 {
     public readonly long HardwareFrequency;
@@ -163,7 +180,6 @@ internal class Clock
     /// <summary>
     ///   Computes the delta based on when the frame actually starts processing.
     /// </summary>
-    
     public double ComputeDelta()
     {
         // Capture the moment the engine actually begins execution for this frame
@@ -177,7 +193,6 @@ internal class Clock
     /// <summary>
     ///   Regulate the framerate by pausing the main thread.
     /// </summary>
-    
     public void RegulateFramerate(double fps)
     {
         long frameEndTick = Stopwatch.GetTimestamp();
@@ -205,7 +220,6 @@ internal class Clock
     /// <summary>
     ///   Commit the final frame by resetting the previous tick capture.
     /// </summary>
-    
     public void CommitFrame()
     {
         // Anchor the baseline clock to the exact moment this frame finishes all work and waiting.
