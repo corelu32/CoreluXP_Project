@@ -1,4 +1,5 @@
 using LUmosaiKE.Core;
+using LUmosaiKE.Graphics;
 using LUmosaiKE.Primitives;
 using SDL3;
 
@@ -31,8 +32,8 @@ public sealed class SdlPlatform : IPlatform
         if (IsWindowRegistered(window))
             throw new Exception($"The window '{window.Title}' is already registered in this SDL context!");
 
-        Action         onOpen           = ( ) => CreateSdlWindow(window);
-        Action<double> onPlatformUpdate = (d) => UpdateSdlWindow(window, d);
+        Action            onOpen           = ( ) => CreateSdlWindow(window);
+        Action<double>    onPlatformUpdate = (d) => UpdateSdlWindow(window, d);
             
         window.OnOpen           += onOpen;
         window.OnPlatformUpdate += onPlatformUpdate;
