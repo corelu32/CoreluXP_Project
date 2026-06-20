@@ -1,6 +1,6 @@
-using LuKe3DX.Applications;
-using LuKe3DX.Graphics;
-using LuKe3DX.Primitives;
+using LUmosaiKE.Applications;
+using LUmosaiKE.Graphics;
+using LUmosaiKE.Primitives;
 
 namespace Demo;
 
@@ -12,7 +12,7 @@ public static class Hello
         
         DesktopApplication app = new()
         {
-            Title = "Hello LuKe3DX",
+            Title = "Hello LUmosaiKE",
             Width = 800,
             Height = 600,
             TargetFramerate = 60

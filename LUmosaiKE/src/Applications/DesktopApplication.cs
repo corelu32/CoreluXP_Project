@@ -1,9 +1,9 @@
-using LuKe3DX.Graphics;
-using LuKe3DX.Mathematics;
-using LuKe3DX.Primitives;
+using LUmosaiKE.Graphics;
+using LUmosaiKE.Mathematics;
+using LUmosaiKE.Primitives;
 using SDL3;
 
-namespace LuKe3DX.Applications;
+namespace LUmosaiKE.Applications;
 
 public sealed class DesktopApplication
 {
@@ -24,7 +24,7 @@ public sealed class DesktopApplication
     private bool _isInitialized = false;
     private bool _isRunning = false;
     
-    private string _title = "LuKe3DX Application";
+    private string _title = "LUmosaiKE Application";
     private int    _width = 800;
     private int    _height = 600;
     private float? _targetFramerate = 60;

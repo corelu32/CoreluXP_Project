@@ -1,14 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\LuKe3DX\LuKe3DX.csproj" />
+    <ProjectReference Include="..\LUmosaiKE\LUmosaiKE.csproj" />
 
     <!-- NOTE:  Prototype demos cannot compile alongside the primary library.
     			This is because the prototypes use ppy.SDL3-CS, while
-       			LuKe3DX uses edwardgushchin's SDL3-CS bindings.
+       			LUmosaiKE uses edwardgushchin's SDL3-CS bindings.
     			
     	        To run the prototypes:
-            		1. Comment out the LuKe3DX reference.
+            		1. Comment out the LUmosaiKE reference.
               		2. Define ENABLE_PROTOTYPE_DEMOS as a constant directive. -->
     
     <!-- <ProjectReference Include="..\Prototypes\Prototypes.csproj" /> -->

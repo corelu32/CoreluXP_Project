@@ -1,4 +1,4 @@
-namespace LuKe3DX.Mathematics;
+namespace LUmosaiKE.Mathematics;
 
 public static class UnitConversions
 {

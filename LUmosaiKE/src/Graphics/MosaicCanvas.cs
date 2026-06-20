@@ -1,7 +1,7 @@
-using LuKe3DX.Applications;
+using LUmosaiKE.Applications;
 using SDL3;
 
-namespace LuKe3DX.Graphics;
+namespace LUmosaiKE.Graphics;
 
 public sealed class MosaicCanvas : IDrawable
 {

@@ -1,6 +1,6 @@
-using LuKe3DX.Applications;
+using LUmosaiKE.Applications;
 
-namespace LuKe3DX.Graphics;
+namespace LUmosaiKE.Graphics;
 
 public interface IDrawable
 {
