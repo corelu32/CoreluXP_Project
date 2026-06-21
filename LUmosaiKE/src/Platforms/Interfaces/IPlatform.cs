@@ -6,6 +6,6 @@ namespace LUmosaiKE.Platforms;
 public interface IPlatform
 {
     void RegisterWindow     (Window window);
+    void UnregisterWindow   (Window window);
     bool IsWindowRegistered (Window window);
-    
 }

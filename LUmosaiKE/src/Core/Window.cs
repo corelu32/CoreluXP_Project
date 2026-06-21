@@ -105,7 +105,10 @@ public sealed class Window
         => OnRender?.Invoke(delta);
 
     public void SignalClose()
-        => OnClose?.Invoke();
+    {
+        OnClose?.Invoke();
+        _running = false;
+    }
     
     public event Action?              OnOpen;
     public event Action?              OnClose;
@@ -154,10 +157,8 @@ public sealed class Window
 
             _clock.CommitFrame();
         }
-
-        OnClose?.Invoke();
     }
-
+    
     public void AddGpuPipeline(GpuPipeline pipeline)
         => OnNewGpuPipeline?.Invoke(pipeline);
 }
@@ -172,6 +173,8 @@ internal class Clock
 
     private long _frameStartTick;
     private long _previousTick;
+
+    public long FrameStartTick { get => _frameStartTick; }
     
     public Clock()
     {

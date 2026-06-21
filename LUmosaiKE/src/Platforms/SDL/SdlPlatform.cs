@@ -43,13 +43,22 @@ public sealed class SdlPlatform : IPlatform
         
         window.OnClose += () =>
         {
-            // Remove all event handlers and destroy the SDL window.
+            // Remove all event handlers upon close.
             window.OnOpen           -= onOpen;
             window.OnPlatformUpdate -= onPlatformUpdate;
             window.OnNewGpuPipeline -= onNewGpuPipeline;
-            
-            DestroySdlWindow(window);
         };
+    }
+
+    /// <summary>
+    ///   Unregister a window upon close.
+    /// </summary>
+    public void UnregisterWindow(Window window)
+    {
+        if (!IsWindowRegistered(window))
+            throw new Exception($"The window '{window.Title}' does not exist!");
+
+        DestroySdlWindow(window);
     }
 
     /// <summary>
@@ -92,6 +101,7 @@ public sealed class SdlPlatform : IPlatform
             throw new Exception($"Failed to bind GPU device to window: {SDL.GetError()}");
 
         _windowContexts[window] = new(window, windowHandle, gpuDeviceHandle);
+        SDL.ShowWindow(windowHandle);
     }
 
     /// <summary>
