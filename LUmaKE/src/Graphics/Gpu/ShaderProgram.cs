@@ -2,7 +2,7 @@ namespace LUmaKE.Graphics.Gpu;
 
 public enum ShaderStage { Vertex, Fragment }
 
-public enum ShaderFormat { Spirv }
+public enum ShaderFormat { Glsl, Hlsl, Wgsl, GlslEs }
 
 public sealed class ShaderProgram
 {
