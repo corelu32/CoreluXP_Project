@@ -1,15 +1,15 @@
 using LUmaKE.Core;
 using SDL3;
 
-namespace LUmaKE.Platforms;
+namespace LUmaKE.Applications;
 
-public partial class SdlPlatform : IPlatform
+public partial class SdlApplication : IApplication
 {
     /// <summary>
     ///   Utility for resolving an SDL window context.
     /// </summary>
     private SdlWindowContext GetWindowContext(Window window)
-        => IsWindowRegistered(window)
+        => ContainsWindow(window)
             ? _windowContexts[window]
             : throw new Exception($"The window '{window.Title}' is not registered in this SDL context.");
 

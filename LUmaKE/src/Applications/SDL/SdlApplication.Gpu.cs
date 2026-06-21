@@ -1,9 +1,9 @@
 using LUmaKE.Core;
 using LUmaKE.Graphics.Gpu;
 
-namespace LUmaKE.Platforms;
+namespace LUmaKE.Applications;
 
-public partial class SdlPlatform : IPlatform
+public partial class SdlApplication : IApplication
 {
     private void AddGpuPipeline(SdlWindowContext context, GpuPipeline pipeline)
     {

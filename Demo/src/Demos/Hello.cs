@@ -1,5 +1,5 @@
 using LUmaKE.Core;
-using LUmaKE.Platforms;
+using LUmaKE.Applications;
 
 namespace Demo;
 
@@ -8,9 +8,9 @@ public static class Hello
     public static void Run()
     {
         var window = new Window("Hello LUmaKE");
-        var platform = new SdlPlatform();
-        platform.RegisterWindow(window);
+        var platform = new SdlApplication();
+        platform.AddWindow(window);
         window.Run();
-        platform.UnregisterWindow(window);
+        platform.RemoveWindow(window);
     }
 }

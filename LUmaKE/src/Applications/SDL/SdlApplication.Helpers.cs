@@ -1,9 +1,9 @@
 using LUmaKE.Primitives;
 using SDL3;
 
-namespace LUmaKE.Platforms;
+namespace LUmaKE.Applications;
 
-public partial class SdlPlatform : IPlatform
+public partial class SdlApplication : IApplication
 {
     /// <summary>
     ///   Poll SDL events.

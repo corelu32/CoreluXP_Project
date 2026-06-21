@@ -114,13 +114,12 @@ public sealed class Window
     public event Action<int, int>?    OnMove;
     public event Action<int, int>?    OnResize;
     public event Action<Keycode>?     OnKeyDown;
-    public event Action<double>?      OnPlatformUpdate;
+    public event Action<double>?      OnApplicationUpdate;
     public event Action<double>?      OnUpdate;
     public event Action<double>?      OnRender;
     public event Action<string>?      OnTitleChange;
     public event Action<double?>?     OnTargetFramerateChange;
     public event Action<bool>?        OnVSyncChange;
-    public event Action<GpuPipeline>? OnNewGpuPipeline;
 
     public Window(string title = "New LUmaKE Project", int width = 800, int height = 600)
     {
@@ -141,9 +140,9 @@ public sealed class Window
         {
             double delta = _clock.ComputeDelta();
 
-            if (OnPlatformUpdate is not null)
+            if (OnApplicationUpdate is not null)
                 // If the platform update has subscribers, prioritize this call.
-                OnPlatformUpdate.Invoke(delta);
+                OnApplicationUpdate.Invoke(delta);
             else
             {
                 // If the platform update is unused, manually invoke OnUpdate and OnRender.
@@ -157,9 +156,6 @@ public sealed class Window
             _clock.CommitFrame();
         }
     }
-    
-    public void AddGpuPipeline(GpuPipeline pipeline)
-        => OnNewGpuPipeline?.Invoke(pipeline);
 }
 
 /// <summary>

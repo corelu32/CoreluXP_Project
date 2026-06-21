@@ -2,12 +2,12 @@ using LUmaKE.Core;
 using LUmaKE.Graphics.Gpu;
 using SDL3;
 
-namespace LUmaKE.Platforms;
+namespace LUmaKE.Applications;
 
 /// <summary>
 ///   Work with an SDL backend. Allows for registration of multiple application windows.
 /// </summary>
-public partial class SdlPlatform : IPlatform
+public partial class SdlApplication : IApplication
 {
     private readonly Dictionary<Window, SdlWindowContext> _windowContexts = [];
 
@@ -21,34 +21,32 @@ public partial class SdlPlatform : IPlatform
     ///   Register an existing window object with the SDL platform.
     ///   This will populate various event handlers on the given window.
     /// </summary>
-    public void RegisterWindow(Window window)
+    public void AddWindow(Window window)
     {
-        if (IsWindowRegistered(window))
+        if (ContainsWindow(window))
             throw new Exception($"The window '{window.Title}' is already registered in this SDL context!");
 
         Action              onOpen           = ( ) => CreateSdlWindow(window);
         Action<double>      onPlatformUpdate = (d) => UpdateSdlWindow(window, d);
         Action<GpuPipeline> onNewGpuPipeline = (p) => AddGpuPipeline(window, p);
             
-        window.OnOpen           += onOpen;
-        window.OnPlatformUpdate += onPlatformUpdate;
-        window.OnNewGpuPipeline += onNewGpuPipeline;
+        window.OnOpen              += onOpen;
+        window.OnApplicationUpdate += onPlatformUpdate;
         
         window.OnClose += () =>
         {
             // Remove all event handlers upon close.
-            window.OnOpen           -= onOpen;
-            window.OnPlatformUpdate -= onPlatformUpdate;
-            window.OnNewGpuPipeline -= onNewGpuPipeline;
+            window.OnOpen              -= onOpen;
+            window.OnApplicationUpdate -= onPlatformUpdate;
         };
     }
 
     /// <summary>
     ///   Unregister a window upon close.
     /// </summary>
-    public void UnregisterWindow(Window window)
+    public void RemoveWindow(Window window)
     {
-        if (!IsWindowRegistered(window))
+        if (!ContainsWindow(window))
             throw new Exception($"The window '{window.Title}' does not exist!");
 
         DestroySdlWindow(window);
@@ -57,6 +55,6 @@ public partial class SdlPlatform : IPlatform
     /// <summary>
     ///   Check if a window has been registered with the SDL platform.
     /// </summary>
-    public bool IsWindowRegistered(Window window)
+    public bool ContainsWindow(Window window)
         => _windowContexts.ContainsKey(window);
 }
