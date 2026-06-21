@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using LUmaKE.Graphics;
 using LUmaKE.Graphics.Gpu;
 using LUmaKE.Mathematics;
 using LUmaKE.Primitives;
