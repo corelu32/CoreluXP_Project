@@ -1,4 +1,4 @@
-namespace LUmosaiKE.Graphics.Gpu;
+namespace LUmaKE.Graphics.Gpu;
 
 
 /// <summary>

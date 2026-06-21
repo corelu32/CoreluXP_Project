@@ -1,4 +1,4 @@
-namespace LUmosaiKE.Primitives;
+namespace LUmaKE.Primitives;
 
 /// <summary>
 ///   Represents a keyboard code.

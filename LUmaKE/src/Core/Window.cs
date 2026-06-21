@@ -1,10 +1,10 @@
 using System.Diagnostics;
-using LUmosaiKE.Graphics;
-using LUmosaiKE.Graphics.Gpu;
-using LUmosaiKE.Mathematics;
-using LUmosaiKE.Primitives;
+using LUmaKE.Graphics;
+using LUmaKE.Graphics.Gpu;
+using LUmaKE.Mathematics;
+using LUmaKE.Primitives;
 
-namespace LUmosaiKE.Core;
+namespace LUmaKE.Core;
 
 /// <summary>
 ///   Represents a window or viewport accompanied with powerful event handling.
@@ -123,7 +123,7 @@ public sealed class Window
     public event Action<bool>?        OnVSyncChange;
     public event Action<GpuPipeline>? OnNewGpuPipeline;
 
-    public Window(string title = "New LUmosaiKE Project", int width = 800, int height = 600)
+    public Window(string title = "New LUmaKE Project", int width = 800, int height = 600)
     {
         Title = title;
         Size  = new(width, height);

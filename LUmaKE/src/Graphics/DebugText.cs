@@ -1,6 +1,6 @@
-using LUmosaiKE.Mathematics;
+using LUmaKE.Mathematics;
 
-namespace LUmosaiKE.Graphics;
+namespace LUmaKE.Graphics;
 
 public sealed class DebugText : IDrawable
 {

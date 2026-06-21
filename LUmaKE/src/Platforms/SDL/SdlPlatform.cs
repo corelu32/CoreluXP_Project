@@ -1,10 +1,10 @@
-using LUmosaiKE.Core;
-using LUmosaiKE.Graphics;
-using LUmosaiKE.Graphics.Gpu;
-using LUmosaiKE.Primitives;
+using LUmaKE.Core;
+using LUmaKE.Graphics;
+using LUmaKE.Graphics.Gpu;
+using LUmaKE.Primitives;
 using SDL3;
 
-namespace LUmosaiKE.Platforms;
+namespace LUmaKE.Platforms;
 
 /// <summary>
 ///   IntPtr alias related to SDL handles.

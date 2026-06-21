@@ -1,7 +1,7 @@
 
-using LUmosaiKE.Core;
+using LUmaKE.Core;
 
-namespace LUmosaiKE.Platforms;
+namespace LUmaKE.Platforms;
 
 public interface IPlatform
 {

@@ -1,4 +1,4 @@
-namespace LUmosaiKE.Mathematics;
+namespace LUmaKE.Mathematics;
 
 public static class UnitConversions
 {

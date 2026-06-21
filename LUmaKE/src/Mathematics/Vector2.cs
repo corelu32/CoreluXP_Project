@@ -1,7 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace LUmosaiKE.Mathematics;
+namespace LUmaKE.Mathematics;
 
 /// <summary>
 ///   Immutable 2D vector.

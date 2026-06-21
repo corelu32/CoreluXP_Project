@@ -1,5 +1,5 @@
-using LUmosaiKE.Core;
-using LUmosaiKE.Platforms;
+using LUmaKE.Core;
+using LUmaKE.Platforms;
 
 namespace Demo;
 
@@ -7,7 +7,7 @@ public static class Hello
 {
     public static void Run()
     {
-        var window = new Window("Hello LUmosaiKE");
+        var window = new Window("Hello LUmaKE");
         var platform = new SdlPlatform();
         platform.RegisterWindow(window);
         window.Run();

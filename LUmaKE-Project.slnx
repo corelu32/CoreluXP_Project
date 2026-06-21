@@ -1,6 +1,6 @@
 <Solution>
   <Project Path="Demo/Demo.csproj" />
-  <Project Path="LUmosaiKE/LUmosaiKE.csproj" />
+  <Project Path="LUmaKE/LUmaKE.csproj" />
   <Project Path="Prototypes/Prototypes.csproj" />
   <Project Path="SDL3Demo/SDL3Demo.csproj" />
   <Project Path="VeldridDemos/VeldridDemos.csproj" />

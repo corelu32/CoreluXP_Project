@@ -1,4 +1,4 @@
-namespace LUmosaiKE.Graphics;
+namespace LUmaKE.Graphics;
 
 public interface IDrawable
 {
