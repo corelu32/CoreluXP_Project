@@ -7,10 +7,11 @@ public static class Hello
 {
     public static void Run()
     {
-        var window = new Window("Hello LUmaKE");
-        var platform = new SdlApplication();
-        platform.AddWindow(window);
+        IApplication app = Application.Create(Platform.SDL);
+        Window window = new("Hello LUmaKE", 800, 600);
+        
+        app.AddWindow(window);
         window.Run();
-        platform.RemoveWindow(window);
+        app.RemoveWindow(window);
     }
 }
