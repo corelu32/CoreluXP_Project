@@ -1,4 +1,3 @@
-using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -24,17 +23,27 @@ public sealed class BinaryBuffer : IDisposable
         _capacity    = capacity;
     }
     
-    public BinaryBufferField<T> CreateLayout<T>() where T : unmanaged
+    public BinaryBufferSegment<T> CreateSegment<T>() where T : unmanaged
     {
-        ThrowIfDisposed();
+        if (_isDisposed)
+            throw new Exception("You cannot operate on a binary buffer that has been disposed.");
+        
         var size = Unsafe.SizeOf<T>();
         
         if (_usage + size > _capacity)
             throw new InvalidOperationException($"Failed to create the layout because this exceeds the binary buffer's capacity of {_capacity} bytes.");
 
-        var layout = new BinaryBufferField<T>(this, _usage);
+        var layout = new BinaryBufferSegment<T>(this, _usage);
         _usage += size;
         return layout;
+    }
+
+    public ReadOnlySpan<byte> AsSpan()
+    {
+        if (_isDisposed)
+            throw new Exception("You cannot operate on a binary buffer that has been disposed.");
+        
+        return _buffer.Span.Slice(0, _usage);
     }
 
     public void Dispose()
@@ -47,7 +56,9 @@ public sealed class BinaryBuffer : IDisposable
     
     internal T Get<T>(int offset) where T : unmanaged
     {
-        ThrowIfDisposed();
+        if (_isDisposed)
+            throw new Exception("You cannot operate on a binary buffer that has been disposed.");
+        
         ReadOnlySpan<byte> span  = _buffer.Span;
         ReadOnlySpan<byte> slice = span.Slice(offset, Unsafe.SizeOf<T>());
         return MemoryMarshal.Read<T>(slice);
@@ -55,25 +66,21 @@ public sealed class BinaryBuffer : IDisposable
 
     internal void Set<T>(int offset, T value) where T : unmanaged
     {
-        ThrowIfDisposed();
+        if (_isDisposed)
+            throw new Exception("You cannot operate on a binary buffer that has been disposed.");
+        
         Span<byte> span = _buffer.Span;
         Span<byte> slice = span.Slice(offset, Unsafe.SizeOf<T>());
         MemoryMarshal.Write(slice, in value);
     }
-
-    private void ThrowIfDisposed()
-    {
-        if (_isDisposed)
-            throw new Exception("You cannot operate on a binary buffer that has been disposed.");
-    }
 }
 
-public sealed class BinaryBufferField<T> where T : unmanaged
+public sealed class BinaryBufferSegment<T> where T : unmanaged
 {
     private readonly BinaryBuffer _buffer;
     private readonly int _offset;
     
-    internal BinaryBufferField(BinaryBuffer buffer, int offset)
+    internal BinaryBufferSegment(BinaryBuffer buffer, int offset)
     {
         _buffer = buffer;
         _offset = offset;
