@@ -1,5 +1,5 @@
-using LUmaKE.Core;
 using LUmaKE.Applications;
+using LUmaKE.Primitives;
 
 namespace Demo;
 
@@ -7,11 +7,14 @@ public static class Hello
 {
     public static void Run()
     {
-        IApplication app = Application.Create(Platform.SDL);
-        Window window = new("Hello LUmaKE", 800, 600);
+        var app = Application.Create(Platform.SDL, "LUmaKE Demo", 800, 600);
+
+        app.OnKeyDown += (keycode) =>
+        {
+            if (keycode is Keycode.Escape)
+                app.Close();
+        };
         
-        app.AddWindow(window);
-        window.Run();
-        app.RemoveWindow(window);
+        app.Run();
     }
 }
