@@ -1,5 +1,6 @@
 using LUmosaiKE.Core;
 using LUmosaiKE.Graphics;
+using LUmosaiKE.Graphics.Gpu;
 using LUmosaiKE.Primitives;
 using SDL3;
 
@@ -32,17 +33,20 @@ public sealed class SdlPlatform : IPlatform
         if (IsWindowRegistered(window))
             throw new Exception($"The window '{window.Title}' is already registered in this SDL context!");
 
-        Action            onOpen           = ( ) => CreateSdlWindow(window);
-        Action<double>    onPlatformUpdate = (d) => UpdateSdlWindow(window, d);
+        Action              onOpen           = ( ) => CreateSdlWindow(window);
+        Action<double>      onPlatformUpdate = (d) => UpdateSdlWindow(window, d);
+        Action<GpuPipeline> onNewGpuPipeline = (p) => AddGpuPipeline(window, p);
             
         window.OnOpen           += onOpen;
         window.OnPlatformUpdate += onPlatformUpdate;
+        window.OnNewGpuPipeline += onNewGpuPipeline;
         
         window.OnClose += () =>
         {
             // Remove all event handlers and destroy the SDL window.
             window.OnOpen           -= onOpen;
             window.OnPlatformUpdate -= onPlatformUpdate;
+            window.OnNewGpuPipeline -= onNewGpuPipeline;
             
             DestroySdlWindow(window);
         };
@@ -143,7 +147,15 @@ public sealed class SdlPlatform : IPlatform
 
     private void UpdateSdlWindow(Window window, double delta)
         => UpdateSdlWindow(GetWindowContext(window), delta);
-    
+
+    private void AddGpuPipeline(SdlWindowContext context, GpuPipeline pipeline)
+    {
+        
+    }
+
+    private void AddGpuPipeline(Window window, GpuPipeline pipeline)
+        => AddGpuPipeline(GetWindowContext(window), pipeline);
+        
     /// <summary>
     ///   Destroy a window that was registered on the SDL platform.
     /// </summary>

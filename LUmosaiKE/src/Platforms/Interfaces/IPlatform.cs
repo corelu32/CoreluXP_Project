@@ -7,4 +7,5 @@ public interface IPlatform
 {
     void RegisterWindow     (Window window);
     bool IsWindowRegistered (Window window);
+    
 }
