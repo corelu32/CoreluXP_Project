@@ -4,14 +4,14 @@ public enum ShaderStage { Vertex, Fragment, Compute }
 
 public enum ShaderFormat { Glsl, Hlsl, Wgsl, GlslEs }
 
-public sealed class ShaderProgram
+public sealed class GpuShader
 {
     public string       Code       { get; }
     public string       EntryPoint { get; }
     public ShaderStage  Stage      { get; }
     public ShaderFormat Format     { get; }
     
-    public ShaderProgram(
+    public GpuShader(
         string       code,
         string       entryPoint,
         ShaderStage  stage,

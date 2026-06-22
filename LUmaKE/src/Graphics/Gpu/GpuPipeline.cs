@@ -80,8 +80,8 @@ public sealed class GpuPipeline
 {
     private readonly List<ColorTargetDescription> _colorTargets = [];
 
-    public ShaderProgram     VertexShader   { get; }
-    public ShaderProgram     FragmentShader { get; }
+    public GpuShader     VertexShader   { get; }
+    public GpuShader     FragmentShader { get; }
     public PrimitiveTopology Topology       { get; }
     public VertexLayout      Layout         { get; }
     
@@ -96,8 +96,8 @@ public sealed class GpuPipeline
     public DepthTargetDescription? DepthTarget { get; }
 
     public GpuPipeline(
-        ShaderProgram     vertexShader,
-        ShaderProgram     fragmentShader,
+        GpuShader     vertexShader,
+        GpuShader     fragmentShader,
         PrimitiveTopology topology,
         VertexLayout      layout,
         IEnumerable<ColorTargetDescription> colorTargets,

@@ -12,7 +12,7 @@ namespace LUmaKE.Applications;
 /// </summary>
 public sealed class SdlApplication : IApplication
 {
-    private readonly Dictionary<ShaderProgram, IntPtr> _shaderHandles   = [];
+    private readonly Dictionary<GpuShader, IntPtr> _shaderHandles   = [];
     private readonly Dictionary<GpuPipeline,   IntPtr> _pipelineHandles = [];
     private readonly Dictionary<GpuBuffer,     IntPtr> _bufferHandles   = [];
     
@@ -446,7 +446,7 @@ public sealed class SdlApplication : IApplication
         throw new Exception($"Cannot create an SDL Vertex element format based on VertexAttribute type '{attribute.Type}' with {attribute.Dimensions} dimensions.");
     }
     
-    private IntPtr CompileShader(ShaderProgram payload)
+    private IntPtr CompileShader(GpuShader payload)
     {
         var stage = payload.Stage switch
         {
@@ -538,7 +538,7 @@ public sealed class SdlApplication : IApplication
         return gpuShader;
     }
     
-    private void ReleaseShader(ShaderProgram shader)
+    private void ReleaseShader(GpuShader shader)
     {
         if (!_shaderHandles.TryGetValue(shader, out var handle))
             return;
