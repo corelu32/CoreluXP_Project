@@ -1,6 +1,6 @@
 namespace LUmaKE.Graphics.Gpu;
 
-public enum ShaderStage { Vertex, Fragment }
+public enum ShaderStage { Vertex, Fragment, Compute }
 
 public enum ShaderFormat { Glsl, Hlsl, Wgsl, GlslEs }
 

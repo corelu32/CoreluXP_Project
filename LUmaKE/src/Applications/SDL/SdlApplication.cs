@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using LUmaKE.Graphics.Gpu;
 using LUmaKE.Mathematics;
 using LUmaKE.Primitives;
@@ -11,8 +12,13 @@ namespace LUmaKE.Applications;
 /// </summary>
 public sealed class SdlApplication : IApplication
 {
+    private readonly Dictionary<ShaderProgram, IntPtr> _shaderHandles   = [];
+    private readonly Dictionary<GpuPipeline,   IntPtr> _pipelineHandles = [];
+    private readonly Dictionary<GpuBuffer,     IntPtr> _bufferHandles   = [];
+    
     private IntPtr _windowHandle;
     private IntPtr _gpuHandle;
+    private IntPtr _renderPassHandle;
 
     private readonly Clock _clock = new();
     
@@ -125,28 +131,89 @@ public sealed class SdlApplication : IApplication
         }
 
         OnClose?.Invoke();
-        Destroy();
+        DestroyApplication();
     }
 
     public void Close()
     {
         _running = false;
     }
-    
+
     public void LoadPipeline(GpuPipeline pipeline)
-        => throw new NotImplementedException();
+    {
+        // If the pipeline was already loaded, then abort.
+        if (_pipelineHandles.ContainsKey(pipeline))
+            return;
+        
+        var vsPayload = pipeline.VertexShader;
+        var fsPayload = pipeline.FragmentShader;
+
+        // Compile the vertex shader if it wasn't already cached.
+        if (!_shaderHandles.ContainsKey(vsPayload))
+            _shaderHandles[vsPayload] = CompileShader(vsPayload);
+
+        // Compile the fragment shader if it wasn't already cached.
+        if (!_shaderHandles.ContainsKey(fsPayload))
+            _shaderHandles[fsPayload] = CompileShader(fsPayload);
+
+        // Create and cache the pipeline.
+        _pipelineHandles[pipeline] = CreatePipeline(pipeline);
+    }
 
     public void BindPipeline(GpuPipeline pipeline)
-        => throw new NotImplementedException();
+    {
+        if (!IsPipelineLoaded(pipeline))
+            throw new Exception($"You cannot bind a pipeline that wasn't loaded.");
+        
+        SDL.BindGPUGraphicsPipeline(_renderPassHandle, _pipelineHandles[pipeline]);
+    }
 
     public void UnloadPipeline(GpuPipeline pipeline)
-        => throw new NotImplementedException();
+    {
+        if (!IsPipelineLoaded(pipeline))
+            return;
+
+        // Filter for all to-be remaining pipeline keys.
+        var remainingPipelineKeys = _pipelineHandles.Keys
+            .Where(pl => pl != pipeline);
+
+        // If no other pipelines reference this vertex shader, release it.
+        if (!remainingPipelineKeys.Any(pl => pl.VertexShader == pipeline.VertexShader))
+            ReleaseShader(pipeline.VertexShader);
+
+        // If no other pipelines reference this fragment shader, release it.
+        if (!remainingPipelineKeys.Any(pl => pl.FragmentShader == pipeline.FragmentShader))
+            ReleaseShader(pipeline.FragmentShader);
+
+        // Release the pipeline.
+        ReleasePipeline(pipeline);
+    }
+
+    public bool IsPipelineLoaded(GpuPipeline pipeline)
+        => _pipelineHandles.ContainsKey(pipeline);
 
     public void LoadBuffer(GpuBuffer buffer)
-        => throw new NotImplementedException();
+    {
+        
+    }
+
+    public void BindBuffer(GpuBuffer buffer)
+    {
+        
+    }
+
+    public void BindBuffers(ICollection<GpuBuffer> buffers)
+    {
+        
+    }
 
     public void UnloadBuffer(GpuBuffer buffer)
-        => throw new NotImplementedException();
+    {
+        
+    }
+
+    public bool IsBufferLoaded(GpuBuffer buffer)
+        => _bufferHandles.ContainsKey(buffer);
     
     private void Initialize()
     {
@@ -211,37 +278,20 @@ public sealed class SdlApplication : IApplication
                     Texture    = swapchainTexture
                 };
 
-                IntPtr renderPass;
-
                 unsafe
                 {
-                    renderPass = SDL.BeginGPURenderPass(commandBuffer, (IntPtr)(&colorTargetInfo), 1, IntPtr.Zero);
+                    _renderPassHandle = SDL.BeginGPURenderPass(commandBuffer, (IntPtr)(&colorTargetInfo), 1, IntPtr.Zero);
                 }
 
                 // Signal the window's render event.
                 OnRender?.Invoke(delta);
 
                 // End the GPU render pass.
-                SDL.EndGPURenderPass(renderPass);
+                SDL.EndGPURenderPass(_renderPassHandle);
             }
         }
 
         SDL.SubmitGPUCommandBuffer(commandBuffer);
-    }
-
-    private void Destroy()
-    {
-        SDL.ReleaseWindowFromGPUDevice(_gpuHandle, _windowHandle);
-
-        if (_gpuHandle != IntPtr.Zero)
-            SDL.DestroyGPUDevice(_gpuHandle);
-
-        if (_windowHandle != IntPtr.Zero)
-            SDL.DestroyWindow(_windowHandle);
-
-        _gpuHandle = IntPtr.Zero;
-        _windowHandle = IntPtr.Zero;
-        SDL.Quit();
     }
 
     private void PollEvents()
@@ -261,6 +311,264 @@ public sealed class SdlApplication : IApplication
                     break;
             }
         }
+    }
+
+    private unsafe IntPtr CreatePipeline(GpuPipeline payload)
+    {
+        var vertDescripts =
+        (
+            from   desc in payload.Layout.Descriptions
+            select new SDL.GPUVertexBufferDescription()
+            {
+                Slot             = (uint)desc.Slot,
+                Pitch            = (uint)desc.Stride,
+                InstanceStepRate = 0,
+                
+                InputRate = desc.InputClassification switch
+                    {
+                        InputClassification.PerVertex   => SDL.GPUVertexInputRate.Vertex,
+                        InputClassification.PerInstance => SDL.GPUVertexInputRate.Instance,
+
+                        _ => throw new Exception("Invalid input classification.")
+                    }
+            }
+        ).ToArray();
+        
+        var vertAttribs =
+        (
+            from   desc in payload.Layout.Descriptions
+            from   attr in desc.Attributes
+            select new SDL.GPUVertexAttribute
+            {
+                BufferSlot = (uint)attr.ParentDescription.Slot,
+                Offset     = (uint)attr.Offset,
+                Format     = ConvertVertexAttributeTypeInfo(attr)
+            }
+        ).ToArray();
+
+        var colorTargetDescripts =
+        (
+            from   desc in payload.ColorTargets
+            select new SDL.GPUColorTargetDescription
+            {
+                Format = SDL.GetGPUSwapchainTextureFormat(_gpuHandle, _windowHandle),
+                BlendState = new SDL.GPUColorTargetBlendState
+                {
+                    EnableBlend = false
+                }
+            }
+        ).ToArray();
+        
+        fixed (void* pVertDescripts = vertDescripts,
+                     pVertAttribs   = vertAttribs,
+                     pTargDescripts = colorTargetDescripts)
+        {
+            var vertInputState = new SDL.GPUVertexInputState
+            {
+                VertexBufferDescriptions = (IntPtr) pVertDescripts,
+                VertexAttributes         = (IntPtr) pVertAttribs,
+                NumVertexBuffers         = (uint)   vertDescripts.Length,
+                NumVertexAttributes      = (uint)   vertAttribs.Length,
+            };
+    
+            var targetInfo = new SDL.GPUGraphicsPipelineTargetInfo
+            {
+                ColorTargetDescriptions = (IntPtr) pTargDescripts,
+                NumColorTargets         = (uint)   colorTargetDescripts.Length
+            };
+            
+            var plCreateInfo = new SDL.GPUGraphicsPipelineCreateInfo
+            {
+                VertexShader     = _shaderHandles[payload.VertexShader],
+                FragmentShader   = _shaderHandles[payload.FragmentShader],
+                VertexInputState = vertInputState,
+                TargetInfo       = targetInfo,
+                
+                PrimitiveType = payload.Topology switch
+                {
+                    PrimitiveTopology.Points        => SDL.GPUPrimitiveType.PointList,
+                    PrimitiveTopology.Lines         => SDL.GPUPrimitiveType.LineList,
+                    PrimitiveTopology.LineStrip     => SDL.GPUPrimitiveType.LineStrip,
+                    PrimitiveTopology.Triangles     => SDL.GPUPrimitiveType.TriangleList,
+                    PrimitiveTopology.TriangleStrip => SDL.GPUPrimitiveType.TriangleStrip,
+    
+                    _ => throw new Exception("Invalid topology provided.")
+                },
+    
+                RasterizerState = new SDL.GPURasterizerState
+                {
+                    FillMode  = SDL.GPUFillMode.Fill,
+                    CullMode  = SDL.GPUCullMode.None,
+                    FrontFace = SDL.GPUFrontFace.CounterClockwise
+                }
+            };
+    
+            IntPtr pipelineHandle = SDL.CreateGPUGraphicsPipeline(_gpuHandle, in plCreateInfo);
+    
+            if (pipelineHandle == IntPtr.Zero)
+                throw new Exception($"Failed to create the graphics pipeline, {SDL.GetError()}.");
+    
+            return pipelineHandle;
+        }
+    }
+
+    private static SDL.GPUVertexElementFormat ConvertVertexAttributeTypeInfo(VertexAttribute attribute)
+    {
+        // Use a 2D lookup table to convert a VertexAttributeType (which defines the type and dimension separately)
+        // into a compatible SDL VertexElementFormat.
+        
+        Dictionary<AttributeType, Dictionary<int, SDL.GPUVertexElementFormat>> map = new()
+        {
+            [AttributeType.Byte] =
+            {
+                [2] = SDL.GPUVertexElementFormat.Byte2,
+                [4] = SDL.GPUVertexElementFormat.Byte4
+            },
+            [AttributeType.Int] =
+            {
+                [1] = SDL.GPUVertexElementFormat.Int,
+                [2] = SDL.GPUVertexElementFormat.Int2,
+                [3] = SDL.GPUVertexElementFormat.Int3,
+                [4] = SDL.GPUVertexElementFormat.Int4
+            },
+            [AttributeType.Float] =
+            {
+                [1] = SDL.GPUVertexElementFormat.Float,
+                [2] = SDL.GPUVertexElementFormat.Float2,
+                [3] = SDL.GPUVertexElementFormat.Float3,
+                [4] = SDL.GPUVertexElementFormat.Float4
+            }
+        };
+        
+        if (map.TryGetValue(attribute.Type, out var v) && v.TryGetValue(attribute.Dimensions, out var result))
+            return result;
+
+        throw new Exception($"Cannot create an SDL Vertex element format based on VertexAttribute type '{attribute.Type}' with {attribute.Dimensions} dimensions.");
+    }
+    
+    private IntPtr CompileShader(ShaderProgram payload)
+    {
+        var stage = payload.Stage switch
+        {
+            ShaderStage.Vertex   => ShaderCross.ShaderStage.Vertex,
+            ShaderStage.Fragment => ShaderCross.ShaderStage.Fragment,
+            ShaderStage.Compute  => ShaderCross.ShaderStage.Compute,
+            
+            _ => throw new Exception("Cannot compile SDL GPU shader with unsupported shader stage.")
+        };
+        
+        // Allocate native UTF-8 strings. CoTaskMem handles null-termination automatically.
+        IntPtr ipCode = IntPtr.Zero;
+        IntPtr ipEntryPoint = IntPtr.Zero;
+    
+        try
+        {
+            ipCode = Marshal.StringToCoTaskMemUTF8(payload.Code);
+            ipEntryPoint = Marshal.StringToCoTaskMemUTF8(payload.EntryPoint);
+    
+            return payload.Format switch
+            {
+                ShaderFormat.Hlsl => CompileHlsl(ipCode, ipEntryPoint, stage),
+                
+                _ => throw new Exception("Unsupported shader source code format.")
+            };
+        }
+        finally
+        {
+            // Free allocations after native compilation completes to prevent memory leaks
+            if (ipCode != IntPtr.Zero) Marshal.FreeCoTaskMem(ipCode);
+            if (ipEntryPoint != IntPtr.Zero) Marshal.FreeCoTaskMem(ipEntryPoint);
+        }
+    }
+    
+    private IntPtr CompileHlsl(
+        IntPtr pCode,
+        IntPtr pEntryPoint,
+        ShaderCross.ShaderStage stage)
+    {   
+        var info = new ShaderCross.HLSLInfo
+        {
+            Source      = pCode,
+            Entrypoint  = pEntryPoint,
+            IncludeDir  = IntPtr.Zero,
+            ShaderStage = stage
+        };
+        
+        // Output parameters handle the returned SPIR-V byte length natively
+        IntPtr pByteCode = ShaderCross.CompileSPIRVFromHLSL(ref info, out UIntPtr pByteCodeSize);
+        
+        if (pByteCode == IntPtr.Zero || pByteCodeSize == UIntPtr.Zero)
+            throw new Exception($"Failed to compile HLSL into SPIR-V bytecode. SDL Error: {SDL.GetError()}.");
+    
+        return CompileSpirv(pByteCode, pByteCodeSize, pEntryPoint, stage);
+    }
+    
+    private IntPtr CompileSpirv(
+        IntPtr  pByteCode,
+        UIntPtr pByteCodeSize,
+        IntPtr  pEntryPoint,
+        ShaderCross.ShaderStage stage)
+    {
+        var spirvInfo = new ShaderCross.SPIRVInfo
+        {
+            ByteCode     = pByteCode,
+            ByteCodeSize = pByteCodeSize,
+            Entrypoint   = pEntryPoint,
+            ShaderStage  = stage
+        };
+    
+        // TODO: Map layout descriptions directly from your incoming metadata representation
+        var resourceInfo = new ShaderCross.GraphicsShaderResourceInfo
+        {
+            NumSamplers        = 0,
+            NumStorageTextures = 0,
+            NumStorageBuffers  = 0,
+            NumUniformBuffers  = 0
+        };
+        
+        IntPtr gpuShader = ShaderCross.CompileGraphicsShaderFromSPIRV(
+            _gpuHandle,
+            ref spirvInfo,
+            ref resourceInfo,
+            0);
+    
+        if (gpuShader == IntPtr.Zero)
+            throw new Exception($"Failed to compile SPIR-V bytecode into native shader code. SDL Error: {SDL.GetError()}.");
+    
+        return gpuShader;
+    }
+    
+    private void ReleaseShader(ShaderProgram shader)
+    {
+        if (!_shaderHandles.TryGetValue(shader, out var handle))
+            return;
+
+        SDL.ReleaseGPUShader(_gpuHandle, handle);
+        _shaderHandles.Remove(shader);
+    }
+
+    private void ReleasePipeline(GpuPipeline pipeline)
+    {
+        if (!_pipelineHandles.TryGetValue(pipeline, out var handle))
+            return;
+
+        SDL.ReleaseGPUGraphicsPipeline(_gpuHandle, handle);
+        _pipelineHandles.Remove(pipeline);
+    }
+    
+    private void DestroyApplication()
+    {
+        SDL.ReleaseWindowFromGPUDevice(_gpuHandle, _windowHandle);
+
+        if (_gpuHandle != IntPtr.Zero)
+            SDL.DestroyGPUDevice(_gpuHandle);
+
+        if (_windowHandle != IntPtr.Zero)
+            SDL.DestroyWindow(_windowHandle);
+
+        _gpuHandle = IntPtr.Zero;
+        _windowHandle = IntPtr.Zero;
+        SDL.Quit();
     }
 }
 

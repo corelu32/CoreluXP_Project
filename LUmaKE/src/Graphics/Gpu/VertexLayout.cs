@@ -70,6 +70,8 @@ public sealed class VertexLayout
 /// </summary>
 public sealed class VertexBufferDescription
 {
+    private List<VertexAttribute> _attributes = [];
+    
     /// <summary>
     ///   Slot number for the description.
     /// </summary>
@@ -83,7 +85,7 @@ public sealed class VertexBufferDescription
     /// <summary>
     ///   The list of child vertex attributes associated with this description slot.
     /// </summary>
-    public List<VertexAttribute> Attributes { get; } = [];
+    public IEnumerable<VertexAttribute> Attributes => _attributes;
 
     /// <summary>
     ///   The input classification for the vertex buffer description.
@@ -108,7 +110,7 @@ public sealed class VertexBufferDescription
             type:        type,
             dimensions:  dimensions);
 
-        Attributes.Add(attribute);
+        _attributes.Add(attribute);
         Stride += GetTypeSize(type) * dimensions;
     }
 

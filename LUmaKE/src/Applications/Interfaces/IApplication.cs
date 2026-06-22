@@ -23,9 +23,14 @@ public interface IApplication
     event Action<double>?  OnUpdate;
     event Action<double>?  OnRender;
     
-    void LoadPipeline   (GpuPipeline pipeline);
-    void BindPipeline   (GpuPipeline pipeline);
-    void UnloadPipeline (GpuPipeline pipeline);
+    void LoadPipeline     (GpuPipeline pipeline);
+    void BindPipeline     (GpuPipeline pipeline);
+    void UnloadPipeline   (GpuPipeline pipeline);
+    bool IsPipelineLoaded (GpuPipeline pipeline);
+    
     void LoadBuffer     (GpuBuffer buffer);
+    void BindBuffer     (GpuBuffer buffer);
+    void BindBuffers    (ICollection<GpuBuffer> buffers);
     void UnloadBuffer   (GpuBuffer buffer);
+    bool IsBufferLoaded (GpuBuffer buffer);
 }
