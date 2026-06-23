@@ -43,7 +43,7 @@
       Command="export LD_LIBRARY_PATH='./.tools/lib'; \
                './.tools/bin/dxc'                     \
                  -T vs_6_0                            \
-                 -E main                              \
+                 -E Main                              \
                  -spirv '%(VertShaders.FullPath)'     \
                  -Fo './obj/Shaders/%(VertShaders.Filename).spv'" />
 
@@ -55,7 +55,7 @@
       Command="export LD_LIBRARY_PATH='./.tools/lib'; \
                './.tools/bin/dxc'                     \
                  -T ps_6_0                            \
-                 -E main                              \
+                 -E Main                              \
                  -spirv '%(FragShaders.FullPath)'     \
                  -Fo './obj/Shaders/%(FragShaders.Filename).spv'" />
     

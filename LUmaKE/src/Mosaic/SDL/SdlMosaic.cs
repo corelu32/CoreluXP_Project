@@ -1,3 +1,4 @@
+using System.Text;
 using LUmaKE.Mathematics;
 using LUmaKE.Primitives;
 using LUmaKE.Utility;
@@ -10,6 +11,7 @@ public sealed class SdlMosaic : IMosaic
     private IntPtr _windowHandle;
     private IntPtr _gpuHandle;
     private IntPtr _renderPassHandle;
+    private IntPtr _pipelineHandle;
 
     private readonly FramerateClock _clock = new();
 
@@ -159,8 +161,112 @@ public sealed class SdlMosaic : IMosaic
         if (!SDL.ClaimWindowForGPUDevice(_gpuHandle, _windowHandle))
             throw new Exception($"Failed to bind GPU device to window: {SDL.GetError()}");
 
+        // Create the primary graphics pipeline.
+        _pipelineHandle = CreatePipeline();
+            
         // Show window post-init.
         SDL.ShowWindow(_windowHandle);
+    }
+
+    private unsafe IntPtr CompileShader(string shaderFileName, ShaderCross.ShaderStage stage)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "Shaders", shaderFileName);
+
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"SPIR-V shader bytecode not found at '{path}'.");
+
+        byte[] code = File.ReadAllBytes(path);
+        nuint codeSize = (nuint)code.Length;
+        byte[] entryPoint = Encoding.UTF8.GetBytes("Main");
+
+        fixed (void* pCode     = code,
+                     pEntPoint = entryPoint)
+        {
+            var spirvInfo = new ShaderCross.SPIRVInfo
+            {
+                ByteCode     = (IntPtr)pCode,
+                Entrypoint   = (IntPtr)pEntPoint,
+                ByteCodeSize = codeSize,
+                ShaderStage  = stage
+            };
+
+            var resourceInfo = new ShaderCross.GraphicsShaderResourceInfo
+            {
+                NumSamplers        = 0,
+                NumStorageTextures = 0,
+                NumStorageBuffers  = 0,
+                NumUniformBuffers  = 0
+            };
+
+            IntPtr gpuShader = ShaderCross.CompileGraphicsShaderFromSPIRV(
+                _gpuHandle,
+                ref spirvInfo,
+                ref resourceInfo,
+                0);
+
+            if (gpuShader == IntPtr.Zero)
+                throw new Exception($"Failed to compile SPIR-V bytecode into native shader code. SDL Error: {SDL.GetError()}.");
+
+            return gpuShader;
+        }
+    }
+
+    private void ReleaseShader(IntPtr handle)
+    {
+        SDL.ReleaseGPUShader(_gpuHandle, handle);
+    }
+
+    private IntPtr CreatePipeline()
+    {
+        var vertexShader = CompileShader("Mosaic.vert.spv", ShaderCross.ShaderStage.Vertex);
+        var fragShader   = CompileShader("Mosaic.frag.spv", ShaderCross.ShaderStage.Fragment);
+        
+        SDL.GPUTextureFormat swapchainFormat = SDL.GetGPUSwapchainTextureFormat(_gpuHandle, _windowHandle);
+    
+        SDL.GPUColorTargetDescription colorTarget = new SDL.GPUColorTargetDescription
+        {
+            Format = swapchainFormat
+        };
+        
+        unsafe
+        {
+            var plCreateInfo = new SDL.GPUGraphicsPipelineCreateInfo
+            {
+                VertexShader     = vertexShader,
+                FragmentShader   = fragShader,
+                VertexInputState = default, // Empty vertex layout
+                PrimitiveType    = SDL.GPUPrimitiveType.TriangleList,
+                RasterizerState  = new SDL.GPURasterizerState
+                {
+                    FillMode  = SDL.GPUFillMode.Fill,
+                    CullMode  = SDL.GPUCullMode.None,
+                    FrontFace = SDL.GPUFrontFace.CounterClockwise
+                },
+                
+                // Assign target details to match your Render Pass destination
+                TargetInfo = new SDL.GPUGraphicsPipelineTargetInfo
+                {
+                    NumColorTargets = 1,
+                    ColorTargetDescriptions = (IntPtr)(&colorTarget),
+                    HasDepthStencilTarget = false
+                }
+            };
+    
+            IntPtr pipelineHandle = SDL.CreateGPUGraphicsPipeline(_gpuHandle, in plCreateInfo);
+    
+            if (pipelineHandle == IntPtr.Zero)
+                throw new Exception($"Failed to create the graphics pipeline, {SDL.GetError()}.");
+            
+            ReleaseShader(vertexShader);
+            ReleaseShader(fragShader);
+    
+            return pipelineHandle;
+        }
+    }
+
+    private void ReleasePipeline(IntPtr handle)
+    {
+        SDL.ReleaseGPUGraphicsPipeline(_gpuHandle, handle);
     }
 
     private void Update(double delta)
@@ -237,6 +343,8 @@ public sealed class SdlMosaic : IMosaic
 
     private void Release()
     {
+        ReleasePipeline(_pipelineHandle);
+        
         SDL.ReleaseWindowFromGPUDevice(_gpuHandle, _windowHandle);
 
         if (_gpuHandle != IntPtr.Zero)

@@ -4,7 +4,7 @@ struct VertexOutput
     float4 color    : COLOR0;
 };
 
-VertexOutput main(uint vertexId : SV_VertexID)
+VertexOutput Main(uint vertexId : SV_VertexID)
 {
     VertexOutput output;
     
