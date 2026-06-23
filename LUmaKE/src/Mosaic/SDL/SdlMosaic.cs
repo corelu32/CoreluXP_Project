@@ -168,6 +168,87 @@ public sealed class SdlMosaic : IMosaic
         SDL.ShowWindow(_windowHandle);
     }
 
+    private void Update(double delta)
+    {
+        PollEvents();
+    
+        // Signal window update.
+        OnUpdate?.Invoke(delta);
+    
+        // Acquire a GPU command buffer.
+        IntPtr commandBuffer = SDL.AcquireGPUCommandBuffer(_gpuHandle);
+        if (commandBuffer == IntPtr.Zero)
+            return;
+    
+        // Use WaitAndAcquire to throttle the CPU thread to the display refresh rate
+        if (SDL.WaitAndAcquireGPUSwapchainTexture(
+            commandBuffer,
+            _windowHandle,
+            out IntPtr swapchainTexture,
+            out uint width,
+            out uint height))
+        {
+            // If the window is minimized or occluded, swapchainTexture might be Zero. Skip rendering.
+            if (swapchainTexture != IntPtr.Zero)
+            {
+                var colorTargetInfo = new SDL.GPUColorTargetInfo
+                {
+                    ClearColor = new SDL.FColor { R = 0.1f, G = 0.1f, B = 0.1f, A = 1.0f }, // Dark gray to see black artifacts
+                    LoadOp     = SDL.GPULoadOp.Clear,
+                    StoreOp    = SDL.GPUStoreOp.Store,
+                    Texture    = swapchainTexture
+                };
+    
+                unsafe
+                {
+                    _renderPassHandle = SDL.BeginGPURenderPass(commandBuffer, (IntPtr)(&colorTargetInfo), 1, IntPtr.Zero);
+
+#if DEBUG_TRIANGLE
+                    SDL.BindGPUGraphicsPipeline(_renderPassHandle, _pipelineHandle);
+                    SDL.DrawGPUPrimitives(
+                        _renderPassHandle,
+                        (uint)3,
+                        (uint)1,
+                        (uint)0,
+                        (uint)0);
+#endif
+                    
+                    OnRender?.Invoke(delta);
+                    SDL.EndGPURenderPass(_renderPassHandle);
+                }
+            }
+        }
+        else
+        {
+            string error = SDL.GetError();
+            
+            if (!string.IsNullOrEmpty(error))
+                throw new Exception($"Swapchain failure: {error}");
+        }
+    
+        // Submit commands to hardware queue
+        SDL.SubmitGPUCommandBuffer(commandBuffer);
+    }
+
+    private void PollEvents()
+    {
+        while (SDL.PollEvent(out var @event))
+        {
+            switch ((SDL.EventType) @event.Type)
+            {
+                // ON QUIT
+                case SDL.EventType.Quit:
+                    Close();
+                    break;
+
+                // ON KEY DOWN
+                case SDL.EventType.KeyDown:
+                    OnKeyDown?.Invoke((Keycode)@event.Key.Key);
+                    break;
+            }
+        }
+    }
+
     private unsafe IntPtr CompileShader(string shaderFileName, ShaderCross.ShaderStage stage)
     {
         var path = Path.Combine(AppContext.BaseDirectory, "Shaders", shaderFileName);
@@ -268,79 +349,7 @@ public sealed class SdlMosaic : IMosaic
     {
         SDL.ReleaseGPUGraphicsPipeline(_gpuHandle, handle);
     }
-
-    private void Update(double delta)
-    {
-        PollEvents();
     
-        // Signal window update.
-        OnUpdate?.Invoke(delta);
-    
-        // Acquire a GPU command buffer.
-        IntPtr commandBuffer = SDL.AcquireGPUCommandBuffer(_gpuHandle);
-        if (commandBuffer == IntPtr.Zero)
-            return;
-    
-        // Use WaitAndAcquire to throttle the CPU thread to the display refresh rate
-        if (SDL.WaitAndAcquireGPUSwapchainTexture(
-            commandBuffer,
-            _windowHandle,
-            out IntPtr swapchainTexture,
-            out uint width,
-            out uint height))
-        {
-            // If the window is minimized or occluded, swapchainTexture might be Zero. Skip rendering.
-            if (swapchainTexture != IntPtr.Zero)
-            {
-                var colorTargetInfo = new SDL.GPUColorTargetInfo
-                {
-                    ClearColor = new SDL.FColor { R = 0.1f, G = 0.1f, B = 0.1f, A = 1.0f }, // Dark gray to see black artifacts
-                    LoadOp     = SDL.GPULoadOp.Clear,
-                    StoreOp    = SDL.GPUStoreOp.Store,
-                    Texture    = swapchainTexture
-                };
-    
-                unsafe
-                {
-                    _renderPassHandle = SDL.BeginGPURenderPass(commandBuffer, (IntPtr)(&colorTargetInfo), 1, IntPtr.Zero);
-                    
-                    OnRender?.Invoke(delta);
-                    
-                    SDL.EndGPURenderPass(_renderPassHandle);
-                }
-            }
-        }
-        else
-        {
-            string error = SDL.GetError();
-            
-            if (!string.IsNullOrEmpty(error))
-                throw new Exception($"Swapchain failure: {error}");
-        }
-    
-        // Submit commands to hardware queue
-        SDL.SubmitGPUCommandBuffer(commandBuffer);
-    }
-
-    private void PollEvents()
-    {
-        while (SDL.PollEvent(out var @event))
-        {
-            switch ((SDL.EventType) @event.Type)
-            {
-                // ON QUIT
-                case SDL.EventType.Quit:
-                    Close();
-                    break;
-
-                // ON KEY DOWN
-                case SDL.EventType.KeyDown:
-                    OnKeyDown?.Invoke((Keycode)@event.Key.Key);
-                    break;
-            }
-        }
-    }
-
     private void Release()
     {
         ReleasePipeline(_pipelineHandle);
