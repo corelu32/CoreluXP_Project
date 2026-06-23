@@ -6,17 +6,88 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-
-  <ItemGroup>
-  	
-  </ItemGroup>
-
+  
   <ItemGroup>
     <PackageReference Include="SDL3-CS" Version="3.4.10.1" />
     <PackageReference Include="SDL3-CS.Native" Version="3.4.2" />
     <PackageReference Include="SDL3-CS.Native.Shadercross" Version="3.0.0" />
     <PackageReference Include="Silk.NET.Shaderc" Version="2.23.0" />
     <PackageReference Include="Silk.NET.Shaderc.Native" Version="2.23.0" />
+  </ItemGroup>
+
+  <!-- Track vertex and fragment shader sources globally -->
+  <ItemGroup>
+    <VertShaders Include="$(MSBuildThisFileDirectory)src/Mosaic/Shaders/**/*.vert.hlsl" />
+    <FragShaders Include="$(MSBuildThisFileDirectory)src/Mosaic/Shaders/**/*.frag.hlsl" />
+    <AllShaders Include="@(VertShaders);@(FragShaders)" />
+  </ItemGroup>
+
+  <!-- If building from Linux, execute dxc directly via MSBuild loops. -->
+  <Target Name="CompileShadersLinux" 
+          BeforeTargets="DispatchToInnerBuilds;BeforeBuild" 
+          Condition="$([MSBuild]::IsOSPlatform('Linux'))"
+          Inputs="@(AllShaders)"
+          Outputs="$(MSBuildThisFileDirectory)obj/Shaders/%(AllShaders.Filename).spv">
+          
+    <Message
+      Importance="high"
+      Text="--- Executing Inline MSBuild Shader Compilation (Linux) ---" />
+
+    <MakeDir Directories="$(MSBuildThisFileDirectory)obj/Shaders" />
+    
+    <!-- Compile Vertex Shaders -->
+    <Exec
+      Condition="'@(VertShaders)' != ''"
+      WorkingDirectory="$(MSBuildThisFileDirectory)"
+      StandardOutputImportance="high"
+      Command="export LD_LIBRARY_PATH='./.tools/lib'; \
+               './.tools/bin/dxc'                     \
+                 -T vs_6_0                            \
+                 -E main                              \
+                 -spirv '%(VertShaders.FullPath)'     \
+                 -Fo './obj/Shaders/%(VertShaders.Filename).spv'" />
+
+    <!-- Compile Fragment Shaders -->
+    <Exec
+      Condition="'@(FragShaders)' != ''"
+      WorkingDirectory="$(MSBuildThisFileDirectory)"
+      StandardOutputImportance="high"
+      Command="export LD_LIBRARY_PATH='./.tools/lib'; \
+               './.tools/bin/dxc'                     \
+                 -T ps_6_0                            \
+                 -E main                              \
+                 -spirv '%(FragShaders.FullPath)'     \
+                 -Fo './obj/Shaders/%(FragShaders.Filename).spv'" />
+    
+  </Target>
+
+  <!-- If building from Windows, compile shaders using shadercross (UNTESTED) -->
+  <Target Name="CompileShadersWindows" 
+          BeforeTargets="DispatchToInnerBuilds;BeforeBuild" 
+          Condition="$([MSBuild]::IsOSPlatform('Windows'))"
+          Inputs="@(AllShaders)"
+          Outputs="$(MSBuildThisFileDirectory)obj/Shaders/%(AllShaders.Filename).spv">
+          
+    <MakeDir Directories="$(MSBuildThisFileDirectory)obj/Shaders" />
+    
+    <Exec 
+      Condition="'@(VertShaders)' != ''" 
+      WorkingDirectory="$(MSBuildThisFileDirectory)"
+      Command="shadercross '%(VertShaders.FullPath)' -o './obj/Shaders/%(VertShaders.Filename).spv'" />
+    
+    <Exec 
+      Condition="'@(FragShaders)' != ''" 
+      WorkingDirectory="$(MSBuildThisFileDirectory)"
+      Command="shadercross '%(FragShaders.FullPath)' -o './obj/Shaders/%(FragShaders.Filename).spv'" />
+      
+  </Target>
+
+  <!-- Deploy the compiled shaders to the object folder. -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)obj/Shaders/**/*.spv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Shaders/%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
   </ItemGroup>
 
 </Project>
