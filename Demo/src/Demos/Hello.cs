@@ -12,47 +12,35 @@ public static class Hello
 
         var vertexShader = new GpuShader(
             """
-            struct VertexInput
-            {
-                float4 position : POSITION;
-                float2 uv       : TEXCOORD0;
-            };
+            #version 450
             
-            struct VertexOutput
-            {
-                float4 position : SV_POSITION;
-                float2 uv       : TEXCOORD0;
-            };
+            const vec3 positions[3] = vec3[3](
+                vec3( 0.0,  0.5, 0.0),
+                vec3( 0.5, -0.5, 0.0),
+                vec3(-0.5, -0.5, 0.0)
+            );
             
-            VertexOutput VertexMain(VertexInput input)
-            {
-                VertexOutput output;
-                output.position = input.position; 
-                output.uv = input.uv;
-                return output;
+            void main() {
+                gl_Position = vec4(positions[gl_VertexIndex], 1.0);
             }
             """,
-            "VertexMain",
+            "main",
             ShaderStage.Vertex,
-            ShaderFormat.Hlsl);
-
+            ShaderFormat.Glsl);
+        
         var fragmentShader = new GpuShader(
             """
-            struct VertexOutput
-            {
-                float4 position : SV_POSITION;
-                float2 uv       : TEXCOORD0;
-            };
+            #version 450
             
-            float4 FragmentMain(VertexOutput input) : SV_Target
-            {
-                return float4(1.0, 0.0, 0.0, 1.0); 
+            layout(location = 0) out vec4 fragColor;
+            
+            void main() {
+                fragColor = vec4(1.0, 0.0, 0.0, 1.0);
             }
-
             """,
-            "FragmentMain",
+            "main",
             ShaderStage.Fragment,
-            ShaderFormat.Hlsl);
+            ShaderFormat.Glsl);
 
         var vertexLayout = new VertexLayout();
         
@@ -66,6 +54,17 @@ public static class Hello
         app.OnStart += () =>
         {
             app.LoadPipeline(pipeline);
+        };
+
+        app.OnClose += () =>
+        {
+            app.UnloadPipeline(pipeline);
+        };
+
+        app.OnUpdate += (delta) =>
+        {
+            app.BindPipeline(pipeline);
+            app.DrawPrimitives(0, 3, 0, 1);
         };
         
         app.OnKeyDown += (keycode) =>

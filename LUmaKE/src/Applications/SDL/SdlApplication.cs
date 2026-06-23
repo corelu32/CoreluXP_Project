@@ -4,6 +4,7 @@ using LUmaKE.Graphics.Gpu;
 using LUmaKE.Mathematics;
 using LUmaKE.Primitives;
 using SDL3;
+using Silk.NET.Shaderc;
 
 namespace LUmaKE.Applications;
 
@@ -12,7 +13,11 @@ namespace LUmaKE.Applications;
 /// </summary>
 public sealed class SdlApplication : IApplication
 {
-    private readonly Dictionary<GpuShader, IntPtr> _shaderHandles   = [];
+    // GLSL is compiled using Silk.NET.Shaderc, separate from the SDL runtime.
+    // Therefore, handles must reference back to here.
+    private readonly Dictionary<IntPtr, byte[]> _compiledGlslCode = [];
+
+    private readonly Dictionary<GpuShader,     IntPtr> _shaderHandles   = [];
     private readonly Dictionary<GpuPipeline,   IntPtr> _pipelineHandles = [];
     private readonly Dictionary<GpuBuffer,     IntPtr> _bufferHandles   = [];
     
@@ -134,6 +139,16 @@ public sealed class SdlApplication : IApplication
         DestroyApplication();
     }
 
+    public void DrawPrimitives(int vertexIndex, int vertexCount, int instanceIndex, int instanceCount)
+    {
+        SDL.DrawGPUPrimitives(
+            _renderPassHandle,
+            (uint)vertexCount,
+            (uint)instanceCount,
+            (uint)vertexIndex,
+            (uint)instanceIndex);
+    }
+    
     public void Close()
     {
         _running = false;
@@ -214,7 +229,7 @@ public sealed class SdlApplication : IApplication
 
     public bool IsBufferLoaded(GpuBuffer buffer)
         => _bufferHandles.ContainsKey(buffer);
-    
+        
     private void Initialize()
     {
         // Initialize SDL.
@@ -222,75 +237,87 @@ public sealed class SdlApplication : IApplication
             throw new Exception($"Failed to initialize SDL: {SDL.GetError()}");
 
         // Initialize a window.
-        IntPtr windowHandle = SDL.CreateWindow(
+        _windowHandle = SDL.CreateWindow(
             _title,
             _size.X,
             _size.Y,
             SDL.WindowFlags.Hidden);
         
-        if (windowHandle == IntPtr.Zero)
+        if (_windowHandle == IntPtr.Zero)
             throw new Exception($"Failed to initialize the window and renderer: {SDL.GetError()}");
 
         // Initialize the GPU device.
-        IntPtr gpuDeviceHandle = SDL.CreateGPUDevice(
+        _gpuHandle = SDL.CreateGPUDevice(
             SDL.GPUShaderFormat.SPIRV | SDL.GPUShaderFormat.MSL | SDL.GPUShaderFormat.DXIL,
             debugMode : false,
             name      : null);
 
-        if (gpuDeviceHandle == IntPtr.Zero)
+        if (_gpuHandle == IntPtr.Zero)
             throw new Exception($"Failed to create the GPU device: {SDL.GetError()}");
 
         // Bind the window to the GPU device.
-        if (!SDL.ClaimWindowForGPUDevice(gpuDeviceHandle, windowHandle))
+        if (!SDL.ClaimWindowForGPUDevice(_gpuHandle, _windowHandle))
             throw new Exception($"Failed to bind GPU device to window: {SDL.GetError()}");
 
         // Show window post-init.
-        SDL.ShowWindow(windowHandle);
+        SDL.ShowWindow(_windowHandle);
     }
 
     private void Update(double delta)
     {
         PollEvents();
-
+    
         // Signal window update.
         OnUpdate?.Invoke(delta);
-
+    
         // Acquire a GPU command buffer.
         IntPtr commandBuffer = SDL.AcquireGPUCommandBuffer(_gpuHandle);
         if (commandBuffer == IntPtr.Zero)
             return;
-
-        // Acquire the swapchain texture for the current frame.
-        if (SDL.AcquireGPUSwapchainTexture(
+    
+        // FIX 1: Use WaitAndAcquire to throttle the CPU thread to the display refresh rate
+        if (SDL.WaitAndAcquireGPUSwapchainTexture(
             commandBuffer,
             _windowHandle,
             out IntPtr swapchainTexture,
             out uint width,
             out uint height))
         {
+            // If the window is minimized or occluded, swapchainTexture might be Zero. Skip rendering.
             if (swapchainTexture != IntPtr.Zero)
             {
                 var colorTargetInfo = new SDL.GPUColorTargetInfo
                 {
-                    ClearColor = new SDL.FColor { R = 0.0f, G = 0.0f, B = 0.0f, A = 1.0f },
+                    ClearColor = new SDL.FColor { R = 0.1f, G = 0.1f, B = 0.1f, A = 1.0f }, // Dark gray to see black artifacts
                     LoadOp     = SDL.GPULoadOp.Clear,
                     StoreOp    = SDL.GPUStoreOp.Store,
                     Texture    = swapchainTexture
                 };
-
+    
                 unsafe
                 {
+                    // Fix 2: Wrap execution to safeguard stack layout stability
                     _renderPassHandle = SDL.BeginGPURenderPass(commandBuffer, (IntPtr)(&colorTargetInfo), 1, IntPtr.Zero);
+                    
+                    // Signal the window's render event (your pipeline binding + draw call must live here)
+                    OnRender?.Invoke(delta);
+    
+                    // End the GPU render pass.
+                    SDL.EndGPURenderPass(_renderPassHandle);
                 }
-
-                // Signal the window's render event.
-                OnRender?.Invoke(delta);
-
-                // End the GPU render pass.
-                SDL.EndGPURenderPass(_renderPassHandle);
             }
         }
-
+        else
+        {
+            // Log if swapchain context initialization explicitly failed
+            string error = SDL.GetError();
+            if (!string.IsNullOrEmpty(error))
+            {
+                Console.WriteLine($"Swapchain failure: {error}");
+            }
+        }
+    
+        // Submit commands to hardware queue
         SDL.SubmitGPUCommandBuffer(commandBuffer);
     }
 
@@ -469,6 +496,7 @@ public sealed class SdlApplication : IApplication
             return payload.Format switch
             {
                 ShaderFormat.Hlsl => CompileHlsl(ipCode, ipEntryPoint, stage),
+                ShaderFormat.Glsl => CompileGlsl(ipCode, ipEntryPoint, stage, (nuint)payload.Code.Length),
                 
                 _ => throw new Exception("Unsupported shader source code format.")
             };
@@ -479,6 +507,55 @@ public sealed class SdlApplication : IApplication
             if (ipCode != IntPtr.Zero) Marshal.FreeCoTaskMem(ipCode);
             if (ipEntryPoint != IntPtr.Zero) Marshal.FreeCoTaskMem(ipEntryPoint);
         }
+    }
+
+    private unsafe IntPtr CompileGlsl(
+        IntPtr pCode,
+        IntPtr pEntryPoint,
+        ShaderCross.ShaderStage stage,
+        nuint codeLen)
+    {
+        using var shaderc = Shaderc.GetApi();
+        Compiler* compiler = shaderc.CompilerInitialize();
+        CompileOptions* options = shaderc.CompileOptionsInitialize();
+    
+        ShaderKind shcStage = stage switch
+        {
+            ShaderCross.ShaderStage.Vertex   => ShaderKind.VertexShader,
+            ShaderCross.ShaderStage.Fragment => ShaderKind.FragmentShader,
+            ShaderCross.ShaderStage.Compute  => ShaderKind.ComputeShader,
+            _ => throw new Exception("Unsupported shader stage.")
+        };
+        
+        shaderc.CompileOptionsSetOptimizationLevel(options, OptimizationLevel.Zero);
+        shaderc.CompileOptionsSetSourceLanguage(options, SourceLanguage.Glsl);
+        
+        // Explicitly target Vulkan 1.3 / SPIR-V 1.6 generation
+        shaderc.CompileOptionsSetTargetEnv(options, TargetEnv.Vulkan, (uint)EnvVersion.Vulkan13);
+        
+        CompilationResult* result = shaderc.CompileIntoSpv(
+            compiler,
+            (byte*)pCode,
+            codeLen,
+            shcStage,
+            "runtime_shader",
+            (byte*)pEntryPoint,
+            options);
+    
+        CompilationStatus status = shaderc.ResultGetCompilationStatus(result);
+    
+        if (status != CompilationStatus.Success)
+            throw new Exception($"Failed to compile GLSL to SPIR-V. {shaderc.ResultGetErrorMessageS(result)}.");
+    
+        nuint length = shaderc.ResultGetLength(result);
+        byte* bytesPtr = shaderc.ResultGetBytes(result);
+        IntPtr gpuShader = CompileSpirv((IntPtr)bytesPtr, length, pEntryPoint, stage);
+        
+        shaderc.ResultRelease(result);
+        shaderc.CompileOptionsRelease(options);
+        shaderc.CompilerRelease(compiler);
+        
+        return gpuShader;
     }
     
     private IntPtr CompileHlsl(

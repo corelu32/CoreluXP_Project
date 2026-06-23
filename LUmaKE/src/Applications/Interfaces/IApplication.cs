@@ -16,6 +16,7 @@ public interface IApplication
     
     void Close();
     void Run();
+    void DrawPrimitives(int vertexIndex, int vertexCount, int instanceIndex, int instanceCount);
 
     event Action?          OnStart;
     event Action?          OnClose;
