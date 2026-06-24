@@ -4,7 +4,7 @@ struct VertexOutput
     float4 color    : COLOR0;
 };
 
-VertexOutput Main(uint vertexId : SV_VertexID)
+VertexOutput Main(uint vertexId : SV_VertexID, uint instId : SV_InstanceID)
 {
     VertexOutput output;
     
@@ -20,8 +20,8 @@ VertexOutput Main(uint vertexId : SV_VertexID)
         float4(0.0f, 0.0f, 1.0f, 1.0f)
     };
 
-    output.position = float4(positions[vertexId], 0.0f, 1.0f);
-    output.color = colors[vertexId];
+    output.position = float4(positions[vertexId] + (instId*0.08f), 0.0f, 1.0f);
+    output.color = colors[vertexId] + (instId*0.2f);
 
     return output;
 }

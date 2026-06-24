@@ -208,7 +208,7 @@ public sealed class SdlMosaic : IMosaic
                     SDL.DrawGPUPrimitives(
                         _renderPassHandle,
                         (uint)3,
-                        (uint)1,
+                        (uint)3,
                         (uint)0,
                         (uint)0);
 #endif
