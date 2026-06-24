@@ -231,6 +231,9 @@ public sealed class SdlMosaic : IMosaic
 #if DEBUG_TRIANGLE
                     SDL.BindGPUGraphicsPipeline(_renderPassHandle, _pipelineHandle);
                     SDL.DrawGPUPrimitives(_renderPassHandle, 3, 3, 0, 0);
+#elif DEBUG_BEZIER
+                    SDL.BindGPUGraphicsPipeline(_renderPassHandle, _pipelineHandle);
+                    SDL.DrawGPUPrimitives(_renderPassHandle, 6144, 2, 0, 0);
 #endif
                     
                     OnRender?.Invoke(delta);
@@ -321,8 +324,11 @@ public sealed class SdlMosaic : IMosaic
     {
         
 #if DEBUG_TRIANGLE
-        var vertexShader = CompileShader("Test.vert.spv", ShaderCross.ShaderStage.Vertex);
-        var fragShader   = CompileShader("Test.frag.spv", ShaderCross.ShaderStage.Fragment);
+        var vertexShader = CompileShader("TriTest.vert.spv", ShaderCross.ShaderStage.Vertex);
+        var fragShader   = CompileShader("TriTest.frag.spv", ShaderCross.ShaderStage.Fragment);
+#elif DEBUG_BEZIER
+        var vertexShader = CompileShader("BezierTest.vert.spv", ShaderCross.ShaderStage.Vertex);
+        var fragShader   = CompileShader("BezierTest.frag.spv", ShaderCross.ShaderStage.Fragment);
 #else
         var vertexShader = CompileShader("Mosaic.vert.spv", ShaderCross.ShaderStage.Vertex);
         var fragShader   = CompileShader("Mosaic.frag.spv", ShaderCross.ShaderStage.Fragment);
