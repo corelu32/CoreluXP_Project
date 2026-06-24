@@ -8,10 +8,15 @@ namespace LUmaKE.Mosaic;
 
 public sealed class SdlMosaic : IMosaic
 {
+    private const SDL.GPUSampleCount SampleCount = SDL.GPUSampleCount.SampleCount4;
+    
     private IntPtr _windowHandle;
     private IntPtr _gpuHandle;
-    private IntPtr _renderPassHandle;
     private IntPtr _pipelineHandle;
+    private IntPtr _renderPassHandle;
+    private IntPtr _msaaTexture;
+    private uint   _msaaWidth;
+    private uint   _msaaHeight;
 
     private readonly FramerateClock _clock = new();
 
@@ -171,16 +176,12 @@ public sealed class SdlMosaic : IMosaic
     private void Update(double delta)
     {
         PollEvents();
-    
-        // Signal window update.
         OnUpdate?.Invoke(delta);
     
-        // Acquire a GPU command buffer.
         IntPtr commandBuffer = SDL.AcquireGPUCommandBuffer(_gpuHandle);
         if (commandBuffer == IntPtr.Zero)
             return;
     
-        // Use WaitAndAcquire to throttle the CPU thread to the display refresh rate
         if (SDL.WaitAndAcquireGPUSwapchainTexture(
             commandBuffer,
             _windowHandle,
@@ -188,32 +189,53 @@ public sealed class SdlMosaic : IMosaic
             out uint width,
             out uint height))
         {
-            // If the window is minimized or occluded, swapchainTexture might be Zero. Skip rendering.
             if (swapchainTexture != IntPtr.Zero)
             {
+                // Dynamically reallocate your MSAA texture canvas if the window size shifts
+                if (_msaaTexture == IntPtr.Zero || _msaaWidth != width || _msaaHeight != height)
+                {
+                    if (_msaaTexture != IntPtr.Zero)
+                        SDL.ReleaseGPUTexture(_gpuHandle, _msaaTexture);
+    
+                    var textureInfo = new SDL.GPUTextureCreateInfo
+                    {
+                        Type              = SDL.GPUTextureType.TextureType2D,
+                        Width             = width,
+                        Height            = height,
+                        LayerCountOrDepth = 1,
+                        NumLevels         = 1,
+                        Usage             = SDL.GPUTextureUsageFlags.ColorTarget,
+                        Format            = SDL.GetGPUSwapchainTextureFormat(_gpuHandle, _windowHandle),
+                        SampleCount       = SampleCount
+                    };
+    
+                    _msaaTexture = SDL.CreateGPUTexture(_gpuHandle, in textureInfo);
+                    _msaaWidth = width;
+                    _msaaHeight = height;
+                }
+                
                 var colorTargetInfo = new SDL.GPUColorTargetInfo
                 {
-                    ClearColor = new SDL.FColor { R = 0.1f, G = 0.1f, B = 0.1f, A = 1.0f }, // Dark gray to see black artifacts
-                    LoadOp     = SDL.GPULoadOp.Clear,
-                    StoreOp    = SDL.GPUStoreOp.Store,
-                    Texture    = swapchainTexture
+                    Texture        = _msaaTexture, 
+                    ResolveTexture = swapchainTexture, 
+                    LoadOp         = SDL.GPULoadOp.Clear,
+                    StoreOp        = SDL.GPUStoreOp.Resolve, 
+                    ClearColor     = new SDL.FColor { R = 0.1f, G = 0.1f, B = 0.1f, A = 1.0f }
                 };
     
                 unsafe
                 {
+                    // Everything drawn within this pass now outputs to the 8x canvas
                     _renderPassHandle = SDL.BeginGPURenderPass(commandBuffer, (IntPtr)(&colorTargetInfo), 1, IntPtr.Zero);
-
+    
 #if DEBUG_TRIANGLE
                     SDL.BindGPUGraphicsPipeline(_renderPassHandle, _pipelineHandle);
-                    SDL.DrawGPUPrimitives(
-                        _renderPassHandle,
-                        (uint)3,
-                        (uint)3,
-                        (uint)0,
-                        (uint)0);
+                    SDL.DrawGPUPrimitives(_renderPassHandle, 3, 3, 0, 0);
 #endif
                     
                     OnRender?.Invoke(delta);
+                    
+                    // When this ends, the GPU automatically flushes and smooths out the edges!
                     SDL.EndGPURenderPass(_renderPassHandle);
                 }
             }
@@ -221,12 +243,10 @@ public sealed class SdlMosaic : IMosaic
         else
         {
             string error = SDL.GetError();
-            
             if (!string.IsNullOrEmpty(error))
                 throw new Exception($"Swapchain failure: {error}");
         }
     
-        // Submit commands to hardware queue
         SDL.SubmitGPUCommandBuffer(commandBuffer);
     }
 
@@ -299,12 +319,18 @@ public sealed class SdlMosaic : IMosaic
 
     private IntPtr CreatePipeline()
     {
+        
+#if DEBUG_TRIANGLE
+        var vertexShader = CompileShader("Test.vert.spv", ShaderCross.ShaderStage.Vertex);
+        var fragShader   = CompileShader("Test.frag.spv", ShaderCross.ShaderStage.Fragment);
+#else
         var vertexShader = CompileShader("Mosaic.vert.spv", ShaderCross.ShaderStage.Vertex);
         var fragShader   = CompileShader("Mosaic.frag.spv", ShaderCross.ShaderStage.Fragment);
+#endif
         
         SDL.GPUTextureFormat swapchainFormat = SDL.GetGPUSwapchainTextureFormat(_gpuHandle, _windowHandle);
-    
-        SDL.GPUColorTargetDescription colorTarget = new SDL.GPUColorTargetDescription
+        
+        SDL.GPUColorTargetDescription colorTarget = new()
         {
             Format = swapchainFormat
         };
@@ -330,6 +356,13 @@ public sealed class SdlMosaic : IMosaic
                     NumColorTargets = 1,
                     ColorTargetDescriptions = (IntPtr)(&colorTarget),
                     HasDepthStencilTarget = false
+                },
+
+                MultisampleState = new SDL.GPUMultisampleState
+                {
+                    SampleCount = SDL.GPUSampleCount.SampleCount8, 
+                    SampleMask = 0,
+                    EnableMask = 0
                 }
             };
     
